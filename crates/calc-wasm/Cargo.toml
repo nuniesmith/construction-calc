@@ -1,0 +1,21 @@
+[package]
+name = "calc-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "WebAssembly bindings for calc-core."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+calc-core = { path = "../calc-core" }
+wasm-bindgen = "0.2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]
