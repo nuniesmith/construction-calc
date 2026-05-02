@@ -130,11 +130,4 @@ $ cargo test -p calc-core
 
 ## License
 
-MIT or Apache-2.0, at your option.
-
-## A note on naming
-
-This project intentionally avoids the names, branding, and pixel-for-pixel
-keypad layout of any commercial calculator. The math (rafter geometry,
-stair calcs, board feet) is public knowledge and not subject to copyright.
-Pick your own product name before shipping.
+MIT
