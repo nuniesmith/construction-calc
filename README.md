@@ -66,6 +66,34 @@ npm run build
 # Output goes in frontend/build/ - serve with any static host.
 ```
 
+### Docker
+
+A multi-stage `Dockerfile` builds the WASM module, builds the SvelteKit
+site, and produces a small nginx image (~30 MB) that serves the static
+output.
+
+```bash
+docker compose build
+docker compose up -d
+# Visit http://localhost:8080
+```
+
+The compose file binds to `127.0.0.1:8080` only — external access is
+expected to come via Tailscale, matching the FKS pattern. Change the
+host port at the top of `docker-compose.yml` if it collides.
+
+To rebuild on source changes:
+
+```bash
+docker compose build --no-cache web   # full rebuild
+# or with BuildKit cache mounts (default), incremental:
+docker compose build web
+```
+
+The container is locked down: read-only rootfs, no new privileges,
+memory cap of 128 MB, healthcheck on `/healthz`. nginx writes to two
+tmpfs mounts so the read-only rootfs doesn't break it.
+
 ## Roadmap
 
 - [x] Exact `Length` arithmetic

@@ -1,0 +1,29 @@
+# Rust artifacts
+target/
+**/target/
+Cargo.lock
+
+# Node + SvelteKit artifacts
+**/node_modules/
+**/.svelte-kit/
+**/build/
+**/dist/
+
+# Pre-built wasm output (Stage 1 generates this fresh)
+frontend/src/lib/wasm/
+
+# Git metadata: we don't need history inside the build context
+.git/
+.gitignore
+.gitattributes
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docker meta itself
+Dockerfile*
+docker-compose*.yml
+.dockerignore
