@@ -18,6 +18,7 @@ use std::f64::consts::PI;
 use crate::angle::Angle;
 use crate::error::CalcError;
 use crate::length::Length;
+use crate::numeric::{length_from_inches_rounded, rational_from_f64_on_grid, rational_to_f64};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CircleInput {
@@ -51,7 +52,7 @@ pub fn solve_circle(kind: CircleInput, value: Rational64) -> Result<CircleSoluti
         CircleInput::Area => (v / PI).sqrt(),
     };
 
-    let radius = length_from_inches_rounded(radius_in);
+    let radius = length_from_inches_rounded(radius_in, 64)?;
     let diameter = radius * Rational64::from_integer(2);
     let circ_in = 2.0 * PI * radius_in;
     let area_in2 = PI * radius_in * radius_in;
@@ -59,8 +60,8 @@ pub fn solve_circle(kind: CircleInput, value: Rational64) -> Result<CircleSoluti
     Ok(CircleSolution {
         radius,
         diameter,
-        circumference: length_from_inches_rounded(circ_in),
-        area: rational_from_decimal_with_grid(area_in2, 1_000_000),
+        circumference: length_from_inches_rounded(circ_in, 64)?,
+        area: rational_from_f64_on_grid(area_in2, 1_000_000)?,
     })
 }
 
@@ -94,21 +95,9 @@ pub fn solve_arc(radius: Length, central_angle: Angle) -> Result<ArcSolution, Ca
     Ok(ArcSolution {
         radius,
         central_angle,
-        arc_length: length_from_inches_rounded(arc_in),
-        chord_length: length_from_inches_rounded(chord_in),
-        sagitta: length_from_inches_rounded(sagitta_in),
-        segment_area: rational_from_decimal_with_grid(segment_in2, 1_000_000),
+        arc_length: length_from_inches_rounded(arc_in, 64)?,
+        chord_length: length_from_inches_rounded(chord_in, 64)?,
+        sagitta: length_from_inches_rounded(sagitta_in, 64)?,
+        segment_area: rational_from_f64_on_grid(segment_in2, 1_000_000)?,
     })
-}
-
-fn rational_to_f64(r: Rational64) -> f64 {
-    *r.numer() as f64 / *r.denom() as f64
-}
-
-fn rational_from_decimal_with_grid(x: f64, grid: i64) -> Rational64 {
-    Rational64::new((x * grid as f64).round() as i64, grid)
-}
-
-fn length_from_inches_rounded(inches: f64) -> Length {
-    Length::from_inches(Rational64::new((inches * 64.0).round() as i64, 64))
 }

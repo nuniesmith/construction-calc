@@ -41,6 +41,9 @@ enum WasmKey {
     Backspace,
     Clear,
     ClearAll,
+    Note {
+        text: String,
+    },
 }
 
 #[derive(Serialize)]
@@ -205,5 +208,6 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
         WasmKey::Backspace => KeyEvent::Backspace,
         WasmKey::Clear => KeyEvent::Clear,
         WasmKey::ClearAll => KeyEvent::ClearAll,
+        WasmKey::Note { text } => KeyEvent::Note(text),
     })
 }

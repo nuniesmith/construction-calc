@@ -18,6 +18,7 @@ use std::f64::consts::PI;
 use crate::angle::Angle;
 use crate::error::CalcError;
 use crate::length::Length;
+use crate::numeric::{length_from_inches_rounded, rational_from_f64, rational_to_f64};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PolygonInput {
@@ -80,9 +81,9 @@ pub fn solve(
         }
     };
 
-    let side_length = length_from_inches_rounded(side_in);
-    let apothem = length_from_inches_rounded(apothem_in);
-    let circumradius = length_from_inches_rounded(circumr_in);
+    let side_length = length_from_inches_rounded(side_in, 64)?;
+    let apothem = length_from_inches_rounded(apothem_in, 64)?;
+    let circumradius = length_from_inches_rounded(circumr_in, 64)?;
 
     let perimeter = side_length * Rational64::from_integer(sides as i64);
 
@@ -97,22 +98,9 @@ pub fn solve(
         side_length,
         apothem,
         circumradius,
-        interior_angle: Angle::from_degrees(rational_from_decimal(interior_deg)),
-        central_angle: Angle::from_degrees(rational_from_decimal(central_deg)),
+        interior_angle: Angle::from_degrees(rational_from_f64(interior_deg)?),
+        central_angle: Angle::from_degrees(rational_from_f64(central_deg)?),
         area: area_in2,
         perimeter,
     })
-}
-
-fn rational_to_f64(r: Rational64) -> f64 {
-    *r.numer() as f64 / *r.denom() as f64
-}
-
-fn rational_from_decimal(x: f64) -> Rational64 {
-    let n = (x * 1_000_000.0).round() as i64;
-    Rational64::new(n, 1_000_000)
-}
-
-fn length_from_inches_rounded(inches: f64) -> Length {
-    Length::from_inches(Rational64::new((inches * 64.0).round() as i64, 64))
 }

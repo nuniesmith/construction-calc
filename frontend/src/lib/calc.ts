@@ -39,7 +39,8 @@ export type Key =
     }
   | { type: 'backspace' }
   | { type: 'clear' }
-  | { type: 'clearAll' };
+  | { type: 'clearAll' }
+  | { type: 'note'; text: string };
 
 export interface Snapshot {
   display: string;

@@ -20,6 +20,7 @@ use num_traits::Zero;
 
 use crate::error::CalcError;
 use crate::length::Length;
+use crate::numeric::{length_from_inches_rounded, rational_from_f64, rational_to_f64};
 use crate::value::Value;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -72,13 +73,13 @@ impl PartialRafter {
     /// {pitch, rise, run, diagonal}. Returns `Ok(None)` when underdetermined.
     pub fn try_solve(&self) -> Result<Option<RafterSolution>, CalcError> {
         // Determine pitch and one length (run preferred), then compute the rest.
-        let (pitch, rise, run, diag) = match self.solve_quad() {
+        let (pitch, rise, run, diag) = match self.solve_quad()? {
             Some(t) => t,
             None => return Ok(None),
         };
 
         let diagonal = diag;
-        let hip_valley = compute_regular_hip_valley(rise, run);
+        let hip_valley = compute_regular_hip_valley(rise, run)?;
         let jack_difference = match self.on_center {
             Some(oc) => Length::from_inches(oc.inches() * (diagonal.inches() / run.inches())),
             None => Length::ZERO,
@@ -94,7 +95,7 @@ impl PartialRafter {
         }))
     }
 
-    fn solve_quad(&self) -> Option<(Rational64, Length, Length, Length)> {
+    fn solve_quad(&self) -> Result<Option<(Rational64, Length, Length, Length)>, CalcError> {
         // Strategy: derive whichever pair we don't have from the pair we do.
         // Pitch + run: rise = pitch * run; diag = sqrt(rise²+run²) (irrational → f64 reify)
         // Pitch + rise: run = rise / pitch
@@ -113,41 +114,44 @@ impl PartialRafter {
         let count =
             p.is_some() as u8 + rise.is_some() as u8 + run.is_some() as u8 + diag.is_some() as u8;
         if count < 2 {
-            return None;
+            return Ok(None);
         }
 
         let solved = match (p, rise, run, diag) {
             (Some(p), _, Some(run), _) => {
                 let rise_l = Length::from_inches(p * run.inches());
-                let diag_l = pythag_diagonal(rise_l, run);
+                let diag_l = pythag_diagonal(rise_l, run)?;
                 (p, rise_l, run, diag_l)
             }
             (Some(p), Some(rise), _, _) => {
                 if p.is_zero() {
-                    return None;
+                    return Ok(None);
                 }
                 let run_l = Length::from_inches(rise.inches() / p);
-                let diag_l = pythag_diagonal(rise, run_l);
+                let diag_l = pythag_diagonal(rise, run_l)?;
                 (p, rise, run_l, diag_l)
             }
             (Some(p), _, _, Some(diag)) => {
                 // tan(theta) = p, so cos = 1/sqrt(1+p²), sin = p/sqrt(1+p²)
                 let p_f = rational_to_f64(p);
                 let theta = p_f.atan();
-                let rise_l = length_from_f64_inches(diag.inches() * rational_from_f64(theta.sin()));
-                let run_l = length_from_f64_inches(diag.inches() * rational_from_f64(theta.cos()));
+                let rise_l = Length::from_inches(diag.inches() * rational_from_f64(theta.sin())?);
+                let run_l = Length::from_inches(diag.inches() * rational_from_f64(theta.cos())?);
                 (p, rise_l, run_l, diag)
             }
             (_, Some(rise), Some(run), _) => {
                 if run.is_zero() {
-                    return None;
+                    return Ok(None);
                 }
                 let pitch = rise.inches() / run.inches();
-                let diag_l = pythag_diagonal(rise, run);
+                let diag_l = pythag_diagonal(rise, run)?;
                 (pitch, rise, run, diag_l)
             }
             (_, Some(rise), _, Some(diag)) => {
-                let run_l = pythag_leg(diag, rise)?;
+                let run_l = match pythag_leg(diag, rise)? {
+                    Some(l) => l,
+                    None => return Ok(None),
+                };
                 let pitch = if run_l.is_zero() {
                     Rational64::zero()
                 } else {
@@ -156,7 +160,10 @@ impl PartialRafter {
                 (pitch, rise, run_l, diag)
             }
             (_, _, Some(run), Some(diag)) => {
-                let rise_l = pythag_leg(diag, run)?;
+                let rise_l = match pythag_leg(diag, run)? {
+                    Some(l) => l,
+                    None => return Ok(None),
+                };
                 let pitch = if run.is_zero() {
                     Rational64::zero()
                 } else {
@@ -164,9 +171,9 @@ impl PartialRafter {
                 };
                 (pitch, rise_l, run, diag)
             }
-            _ => return None,
+            _ => return Ok(None),
         };
-        Some(solved)
+        Ok(Some(solved))
     }
 }
 
@@ -183,47 +190,28 @@ pub struct RafterSolution {
 }
 
 /// Compute hypotenuse for a right triangle, rounding to 1/64" inch.
-fn pythag_diagonal(a: Length, b: Length) -> Length {
+fn pythag_diagonal(a: Length, b: Length) -> Result<Length, CalcError> {
     let a2 = rational_to_f64(a.inches()).powi(2);
     let b2 = rational_to_f64(b.inches()).powi(2);
-    length_from_f64_inches_rounded((a2 + b2).sqrt(), 64)
+    length_from_inches_rounded((a2 + b2).sqrt(), 64)
 }
 
 /// Compute the missing leg given hypotenuse `h` and the other leg `a`.
-fn pythag_leg(h: Length, a: Length) -> Option<Length> {
+/// Returns `Ok(None)` when the triangle is impossible (h < a).
+fn pythag_leg(h: Length, a: Length) -> Result<Option<Length>, CalcError> {
     let h2 = rational_to_f64(h.inches()).powi(2);
     let a2 = rational_to_f64(a.inches()).powi(2);
     let diff = h2 - a2;
     if diff < 0.0 {
-        return None;
+        return Ok(None);
     }
-    Some(length_from_f64_inches_rounded(diff.sqrt(), 64))
+    Ok(Some(length_from_inches_rounded(diff.sqrt(), 64)?))
 }
 
-fn compute_regular_hip_valley(rise: Length, run: Length) -> Length {
+fn compute_regular_hip_valley(rise: Length, run: Length) -> Result<Length, CalcError> {
     // Hip rafter run = run × √2. Hip rafter length = √(rise² + (run√2)²).
     let run_f = rational_to_f64(run.inches());
     let rise_f = rational_to_f64(rise.inches());
     let hip_run = run_f * 2.0_f64.sqrt();
-    length_from_f64_inches_rounded((rise_f.powi(2) + hip_run.powi(2)).sqrt(), 64)
-}
-
-fn rational_to_f64(r: Rational64) -> f64 {
-    *r.numer() as f64 / *r.denom() as f64
-}
-
-fn rational_from_f64(x: f64) -> Rational64 {
-    // Pin to 1/1_000_000 grid for stability; trig in this calculator never
-    // needs more than this when reified to a length.
-    let n = (x * 1_000_000.0).round() as i64;
-    Rational64::new(n, 1_000_000)
-}
-
-fn length_from_f64_inches(in_r: Rational64) -> Length {
-    Length::from_inches(in_r)
-}
-
-fn length_from_f64_inches_rounded(inches: f64, denom: i64) -> Length {
-    let n = (inches * denom as f64).round() as i64;
-    Length::from_inches(Rational64::new(n, denom))
+    length_from_inches_rounded((rise_f.powi(2) + hip_run.powi(2)).sqrt(), 64)
 }
