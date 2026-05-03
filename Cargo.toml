@@ -27,7 +27,7 @@ lto = true
 codegen-units = 1
 opt-level = "z"
 strip = true
-
-[profile.release-wasm]
-inherits = "release"
-opt-level = "z"
+# `panic = "abort"` removes the panic unwinding tables. wasm-bindgen panics
+# turn into JS exceptions either way (via console_error_panic_hook), so we
+# never need unwind support at runtime.
+panic = "abort"

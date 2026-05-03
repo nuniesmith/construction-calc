@@ -41,8 +41,20 @@ pub enum LengthFormat {
     },
 }
 
+/// Caller can ask for arbitrary precision in the conversion API; this is the
+/// generous upper bound we'll honour. Anything more is almost certainly a
+/// caller bug — `f64` only has ~15 significant digits anyway.
+const MAX_PRECISION: u8 = 12;
+
 impl LengthFormat {
     pub fn validate(self) -> Result<Self, ParseError> {
+        let check_precision = |p: u8| -> Result<(), ParseError> {
+            if p > MAX_PRECISION {
+                Err(ParseError::InvalidPrecision(p))
+            } else {
+                Ok(())
+            }
+        };
         match self {
             LengthFormat::FeetInchFraction { denom } => {
                 if !matches!(denom, 2 | 4 | 8 | 16 | 32 | 64) {
@@ -50,7 +62,15 @@ impl LengthFormat {
                 }
                 Ok(self)
             }
-            _ => Ok(self),
+            LengthFormat::DecimalFeet { precision }
+            | LengthFormat::DecimalInches { precision }
+            | LengthFormat::Yards { precision }
+            | LengthFormat::Millimeters { precision }
+            | LengthFormat::Centimeters { precision }
+            | LengthFormat::Meters { precision } => {
+                check_precision(precision)?;
+                Ok(self)
+            }
         }
     }
 }
@@ -88,7 +108,7 @@ fn format_feet_inch_fraction(length: &Length, denom: u32) -> String {
         out.push('-');
     }
 
-    let frac_str = format_proper_fraction(frac, denom);
+    let frac_str = format_proper_fraction(frac);
 
     match (feet, inches, frac_str.as_str()) {
         (0, 0, "") => out.push_str("0\""),
@@ -105,7 +125,7 @@ fn format_feet_inch_fraction(length: &Length, denom: u32) -> String {
 
 /// Format the fractional inch part as a proper reduced fraction,
 /// or an empty string if it rounds to zero.
-fn format_proper_fraction(frac: Rational64, _denom: u32) -> String {
+fn format_proper_fraction(frac: Rational64) -> String {
     if frac.is_zero() {
         return String::new();
     }

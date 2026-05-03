@@ -1,6 +1,6 @@
 <script lang="ts">
   import { calc } from './calc';
-  import { downloadText, pickTextFile } from './download';
+  import { downloadText, pickTextFile, FileTooLargeError } from './download';
 
   let copied = false;
   let copiedTimer: ReturnType<typeof setTimeout> | null = null;
@@ -53,7 +53,17 @@
   }
 
   async function loadJson() {
-    const txt = await pickTextFile();
+    let txt: string | null;
+    try {
+      txt = await pickTextFile();
+    } catch (e) {
+      if (e instanceof FileTooLargeError) {
+        flash('error', `File is too large (${(e.size / 1024 / 1024).toFixed(1)} MB). Tapes are typically a few KB.`);
+      } else {
+        flash('error', `Could not read file: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return;
+    }
     if (!txt) return;
     try {
       calc.loadJsonTape(txt);
