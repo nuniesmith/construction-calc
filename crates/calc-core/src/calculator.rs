@@ -11,6 +11,7 @@ use num_traits::Zero;
 use crate::error::CalcError;
 use crate::format::LengthFormat;
 use crate::length::Length;
+use crate::operations::compound_miter_state::{MiterField, PartialCompoundMiter};
 use crate::operations::rafter::{PartialRafter, RafterField};
 use crate::tape::{Tape, TapeEntry};
 use crate::value::Value;
@@ -35,34 +36,39 @@ pub enum LengthUnitKey {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum FunctionKey {
-    /// Right-angle / rafter family
+    // -- Rafter family --
     Pitch,
     Rise,
     Run,
     Diagonal,
     HipValley,
     Jack,
-    /// Forward trig — operate on the current display (an Angle).
+    // -- Trig --
     Sin,
     Cos,
     Tan,
-    /// Inverse trig — operate on the current display (a Scalar).
     Asin,
     Acos,
     Atan,
-    /// Take the square root of the current display value.
+    // -- Plain math --
     Sqrt,
-    /// Square the current display value.
     Square,
-    /// 1/x
     Reciprocal,
-    /// % of: pops two operands, applies a percentage.
     Percent,
+    // -- Compound miter family --
+    /// Set the corner angle for compound-miter solving.
+    Corner,
+    /// Set the spring angle for compound-miter solving.
+    Spring,
+    /// Show the miter (saw rotation) angle.
+    Miter,
+    /// Show the bevel (blade tilt) angle.
+    Bevel,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum MemoryOp {
-    Store(u8),    // M+ register select (0..4)
+    Store(u8),
     Recall(u8),
     AddTo(u8),
     Clear(u8),
@@ -73,17 +79,12 @@ pub enum MemoryOp {
 pub enum KeyEvent {
     Digit(u8),
     Decimal,
-    /// Slash key entered between digits begins a fraction.
     Slash,
-    /// Toggle sign on the current entry buffer.
     Negate,
     Op(BinaryOp),
     Equals,
-    /// Apply a unit label to the current numeric buffer.
     Unit(LengthUnitKey),
-    /// Press a domain function key (Pitch, Rise, Run, ...).
     Function(FunctionKey),
-    /// Convert the current display to a different format.
     Convert(LengthFormat),
     Memory(MemoryOp),
     Backspace,
@@ -91,7 +92,6 @@ pub enum KeyEvent {
     ClearAll,
 }
 
-/// Mode the user selected for default display.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Mode {
     pub default_length_format: LengthFormat,
@@ -107,23 +107,13 @@ impl Default for Mode {
     }
 }
 
-/// What's currently being typed into the entry buffer, before the user
-/// commits it with an operator or unit key.
 #[derive(Clone, Debug, Default, PartialEq)]
 struct EntryBuffer {
-    /// Whole portion typed so far, e.g. "5".
     whole: String,
-    /// Numerator after a `/`, before a denominator.
     numerator: Option<String>,
-    /// Denominator after the second `/` (numerator already taken).
     denominator: Option<String>,
-    /// True if the user hit `.` while typing the whole portion.
     has_decimal: bool,
-    /// Sign flip via Negate.
     negative: bool,
-    /// Accumulated parts already committed with unit keys this entry.
-    /// e.g. after typing `5 [Feet]`, we capture (5 ft) here, then the next
-    /// digits go to the inches portion, which gets committed on `[Inch]`.
     accumulated: Option<Length>,
 }
 
@@ -146,7 +136,7 @@ impl EntryBuffer {
 
     fn push_decimal(&mut self) {
         if self.numerator.is_some() || self.denominator.is_some() {
-            return; // ignore: decimals don't combine with fractions
+            return;
         }
         if !self.has_decimal {
             if self.whole.is_empty() {
@@ -200,8 +190,6 @@ impl EntryBuffer {
         *self = Self::default();
     }
 
-    /// Build a Rational64 representing the typed numeric portion (mixed
-    /// number, decimal, or fraction). Does not include `accumulated`.
     fn current_rational(&self) -> Result<Rational64, CalcError> {
         let mut r = if self.whole.is_empty() {
             Rational64::zero()
@@ -224,7 +212,6 @@ impl EntryBuffer {
             }
             r += Rational64::new(n, d);
         } else if let Some(num) = &self.numerator {
-            // Pure fraction was entered without a whole part
             if !num.is_empty() && self.whole.is_empty() {
                 let n: i64 = num
                     .parse()
@@ -246,14 +233,11 @@ pub struct Calculator {
     pub memory: [Value; 4],
 
     entry: EntryBuffer,
-    /// Pending arithmetic: when the user types `5 + ...`, we hold the LHS
-    /// and the operator until we have an RHS.
     pending: Option<(Value, BinaryOp)>,
-    /// Last committed value used for chained `=` repeats (CM Pro behaviour).
     last_op: Option<(BinaryOp, Value)>,
 
-    /// State accumulated for rafter-family solves.
     rafter: PartialRafter,
+    compound_miter: PartialCompoundMiter,
 
     pub tape: Tape,
 }
@@ -279,11 +263,11 @@ impl Calculator {
             pending: None,
             last_op: None,
             rafter: PartialRafter::default(),
+            compound_miter: PartialCompoundMiter::default(),
             tape: Tape::default(),
         }
     }
 
-    /// Apply a key event and return a new display string.
     pub fn handle(&mut self, ev: KeyEvent) -> Result<(), CalcError> {
         match ev {
             KeyEvent::Digit(d) => {
@@ -294,9 +278,7 @@ impl Calculator {
                 self.entry.push_decimal();
                 self.refresh_display_from_entry()?;
             }
-            KeyEvent::Slash => {
-                self.entry.push_slash();
-            }
+            KeyEvent::Slash => self.entry.push_slash(),
             KeyEvent::Negate => {
                 self.entry.negate();
                 self.refresh_display_from_entry()?;
@@ -332,8 +314,7 @@ impl Calculator {
         }
         let n = self.entry.current_rational()?;
         if let Some(acc) = self.entry.accumulated {
-            let extra = Length::from_inches(n);
-            self.display = Value::Length(acc + extra);
+            self.display = Value::Length(acc + Length::from_inches(n));
         } else {
             self.display = Value::Scalar(n);
         }
@@ -341,7 +322,6 @@ impl Calculator {
     }
 
     fn commit_unit(&mut self, u: LengthUnitKey) -> Result<(), CalcError> {
-        // Get the typed number, default 0 if buffer empty.
         let n = if self.entry.is_empty() {
             Rational64::zero()
         } else {
@@ -369,7 +349,6 @@ impl Calculator {
     }
 
     fn commit_current_value(&mut self) -> Result<Value, CalcError> {
-        // Whatever's on display, freeze it as the operand and clear entry.
         let v = self.display;
         self.entry.reset();
         Ok(v)
@@ -404,11 +383,9 @@ impl Calculator {
     }
 
     fn handle_function(&mut self, f: FunctionKey) -> Result<(), CalcError> {
-        // Treat the current display as the entered value for whichever
-        // family this key belongs to.
         let current = self.display;
         match f {
-            // -------- rafter family --------
+            // -- Rafter family --
             FunctionKey::Pitch
             | FunctionKey::Rise
             | FunctionKey::Run
@@ -433,12 +410,11 @@ impl Calculator {
                 }
             }
 
-            // -------- forward trig: takes Angle, returns Scalar --------
+            // -- Forward trig --
             FunctionKey::Sin | FunctionKey::Cos | FunctionKey::Tan => {
                 let angle = match current {
                     Value::Angle(a) => a,
                     Value::Scalar(r) => {
-                        // Bare scalar interpreted as degrees in the current mode.
                         if self.mode.angle_in_degrees {
                             crate::angle::Angle::from_degrees(r)
                         } else {
@@ -456,7 +432,7 @@ impl Calculator {
                 self.display = Value::Scalar(rational_from_f64(v));
             }
 
-            // -------- inverse trig: takes Scalar, returns Angle --------
+            // -- Inverse trig --
             FunctionKey::Asin | FunctionKey::Acos | FunctionKey::Atan => {
                 let x = match current {
                     Value::Scalar(r) => rational_to_f64(r),
@@ -471,19 +447,13 @@ impl Calculator {
                 self.display = Value::Angle(a);
             }
 
-            FunctionKey::Sqrt => {
-                self.display = sqrt_value(current)?;
-            }
-            FunctionKey::Square => {
-                self.display = current.mul(current)?;
-            }
+            FunctionKey::Sqrt => self.display = sqrt_value(current)?,
+            FunctionKey::Square => self.display = current.mul(current)?,
             FunctionKey::Reciprocal => {
                 let one = Value::Scalar(num_rational::Rational64::from_integer(1));
                 self.display = one.div(current)?;
             }
             FunctionKey::Percent => {
-                // x % means x / 100 in scalar form. When applied as RHS of a
-                // pending op, e.g. "200 + 5 %" → 200 + 200*0.05.
                 if let Value::Scalar(r) = current {
                     let pct = Value::Scalar(r / num_rational::Rational64::from_integer(100));
                     if let Some((lhs, _)) = self.pending {
@@ -493,6 +463,32 @@ impl Calculator {
                     }
                 } else {
                     return Err(CalcError::TypeMismatch);
+                }
+            }
+
+            // -- Compound miter family --
+            FunctionKey::Corner | FunctionKey::Spring | FunctionKey::Miter | FunctionKey::Bevel => {
+                if matches!(f, FunctionKey::Corner) {
+                    self.compound_miter
+                        .set_field(MiterField::Corner, current)?;
+                } else if matches!(f, FunctionKey::Spring) {
+                    self.compound_miter
+                        .set_field(MiterField::Spring, current)?;
+                }
+                if let Some(soln) = self.compound_miter.try_solve()? {
+                    // Append a note describing the cut.
+                    self.tape.push(TapeEntry::Note(format!(
+                        "Compound miter — corner {}, spring {} → miter {}, bevel {}",
+                        soln.corner_angle,
+                        soln.spring_from_wall,
+                        soln.miter_angle,
+                        soln.bevel_angle
+                    )));
+                    self.display = match f {
+                        FunctionKey::Corner | FunctionKey::Miter => Value::Angle(soln.miter_angle),
+                        FunctionKey::Spring | FunctionKey::Bevel => Value::Angle(soln.bevel_angle),
+                        _ => unreachable!(),
+                    };
                 }
             }
         }
@@ -507,19 +503,13 @@ impl Calculator {
 
     fn handle_memory(&mut self, m: MemoryOp) -> Result<(), CalcError> {
         match m {
-            MemoryOp::Store(i) => {
-                self.memory[i as usize] = self.display;
-            }
-            MemoryOp::Recall(i) => {
-                self.display = self.memory[i as usize];
-            }
+            MemoryOp::Store(i) => self.memory[i as usize] = self.display,
+            MemoryOp::Recall(i) => self.display = self.memory[i as usize],
             MemoryOp::AddTo(i) => {
                 let cur = self.memory[i as usize];
                 self.memory[i as usize] = cur.add(self.display)?;
             }
-            MemoryOp::Clear(i) => {
-                self.memory[i as usize] = Value::zero_scalar();
-            }
+            MemoryOp::Clear(i) => self.memory[i as usize] = Value::zero_scalar(),
             MemoryOp::ClearAll => {
                 for slot in self.memory.iter_mut() {
                     *slot = Value::zero_scalar();
@@ -529,13 +519,18 @@ impl Calculator {
         Ok(())
     }
 
-    /// Render the current display using the current mode's preferred format.
     pub fn display_string(&self) -> String {
         match self.display {
             Value::Scalar(r) => crate::format::rational_to_decimal_string(r, 6),
             Value::Length(l) => crate::format::format_length(&l, self.mode.default_length_format),
-            Value::Area(r) => format!("{} sq in", crate::format::rational_to_decimal_string(r, 4)),
-            Value::Volume(r) => format!("{} cu in", crate::format::rational_to_decimal_string(r, 4)),
+            Value::Area(r) => format!(
+                "{} sq in",
+                crate::format::rational_to_decimal_string(r, 4)
+            ),
+            Value::Volume(r) => format!(
+                "{} cu in",
+                crate::format::rational_to_decimal_string(r, 4)
+            ),
             Value::Angle(a) => a.to_string(),
         }
     }
@@ -569,12 +564,6 @@ fn rational_from_f64(x: f64) -> num_rational::Rational64 {
     num_rational::Rational64::new(n, 1_000_000)
 }
 
-/// Square root, dimension-aware:
-///   sqrt(Scalar)  → Scalar
-///   sqrt(Area)    → Length
-///   sqrt(Length)  → Scalar (dimensionally weird, but matches calculator
-///                  conventions where sqrt of a numeric inch value yields
-///                  a numeric result)
 fn sqrt_value(v: Value) -> Result<Value, CalcError> {
     match v {
         Value::Scalar(r) => {

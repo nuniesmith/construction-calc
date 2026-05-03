@@ -1,0 +1,9 @@
+# Pinning the toolchain keeps local dev, CI, and `docker build` in sync.
+# Bump this in lockstep with the RUST_VERSION arg in docker/Dockerfile.
+#
+# Must be >= 1.85 because Cargo.toml declares `edition = "2024"`.
+[toolchain]
+channel = "1.86.0"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

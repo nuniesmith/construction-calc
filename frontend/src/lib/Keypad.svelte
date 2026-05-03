@@ -1,41 +1,52 @@
 <script lang="ts">
-  import { calc, type Key } from './calc';
+  import { calc, type Key, type FunctionKey } from './calc';
   import { longPress } from './longPress';
 
-  /** Bound by parent so the help overlay can read it. */
   export let helpKey: string | null = null;
 
   interface ButtonSpec {
     label: string;
-    /** Help id; if absent, label-as-lower is used. */
     helpId?: string;
     key: Key;
     style?: 'fn' | 'op' | 'num' | 'unit' | 'ctrl';
     span?: number;
   }
 
-  type Page = 'rafter' | 'trig';
+  type Page = 'rafter' | 'trig' | 'miter';
   let page: Page = 'rafter';
 
-  // The first row of function keys swaps with the page tab. The rest of
-  // the keypad (units, controls, math, digits, ops) stays constant —
-  // that's the muscle-memory part.
+  const fnKey = (label: string, fun: FunctionKey, helpId = label.toLowerCase()): ButtonSpec => ({
+    label,
+    helpId,
+    key: { type: 'function', fun },
+    style: 'fn'
+  });
+
   const functionPages: Record<Page, ButtonSpec[]> = {
     rafter: [
-      { label: 'Pitch', helpId: 'pitch', key: { type: 'function', fun: 'pitch' }, style: 'fn' },
-      { label: 'Rise', helpId: 'rise', key: { type: 'function', fun: 'rise' }, style: 'fn' },
-      { label: 'Run', helpId: 'run', key: { type: 'function', fun: 'run' }, style: 'fn' },
-      { label: 'Diag', helpId: 'diag', key: { type: 'function', fun: 'diag' }, style: 'fn' },
-      { label: 'Hip/V', helpId: 'hipv', key: { type: 'function', fun: 'hipv' }, style: 'fn' },
-      { label: 'Jack', helpId: 'jack', key: { type: 'function', fun: 'jack' }, style: 'fn' }
+      fnKey('Pitch', 'pitch'),
+      fnKey('Rise', 'rise'),
+      fnKey('Run', 'run'),
+      fnKey('Diag', 'diag'),
+      fnKey('Hip/V', 'hipv'),
+      fnKey('Jack', 'jack')
     ],
     trig: [
-      { label: 'sin', helpId: 'sin', key: { type: 'function', fun: 'sin' }, style: 'fn' },
-      { label: 'cos', helpId: 'cos', key: { type: 'function', fun: 'cos' }, style: 'fn' },
-      { label: 'tan', helpId: 'tan', key: { type: 'function', fun: 'tan' }, style: 'fn' },
-      { label: 'asin', helpId: 'asin', key: { type: 'function', fun: 'asin' }, style: 'fn' },
-      { label: 'acos', helpId: 'acos', key: { type: 'function', fun: 'acos' }, style: 'fn' },
-      { label: 'atan', helpId: 'atan', key: { type: 'function', fun: 'atan' }, style: 'fn' }
+      fnKey('sin', 'sin'),
+      fnKey('cos', 'cos'),
+      fnKey('tan', 'tan'),
+      fnKey('asin', 'asin'),
+      fnKey('acos', 'acos'),
+      fnKey('atan', 'atan')
+    ],
+    miter: [
+      fnKey('Corner', 'corner'),
+      fnKey('Spring', 'spring'),
+      fnKey('Miter', 'miter'),
+      fnKey('Bevel', 'bevel'),
+      // Two empty slots so the row stays a clean 6 cells.
+      { label: '', key: { type: 'clear' }, style: 'fn', span: 1 },
+      { label: '', key: { type: 'clear' }, style: 'fn', span: 1 }
     ]
   };
 
@@ -81,10 +92,12 @@
   $: layout = [...functionPages[page], ...sharedRows];
 
   function press(spec: ButtonSpec) {
+    if (!spec.label) return; // empty filler cell
     calc.send(spec.key);
   }
 
   function showHelp(spec: ButtonSpec) {
+    if (!spec.label) return;
     helpKey = spec.helpId ?? spec.label.toLowerCase();
   }
 </script>
@@ -92,13 +105,16 @@
 <div class="page-tabs">
   <button class:active={page === 'rafter'} on:click={() => (page = 'rafter')}>Rafter</button>
   <button class:active={page === 'trig'} on:click={() => (page = 'trig')}>Trig</button>
+  <button class:active={page === 'miter'} on:click={() => (page = 'miter')}>Miter</button>
 </div>
 
 <div class="keypad">
-  {#each layout as spec (spec.label + (spec.helpId ?? ''))}
+  {#each layout as spec, i (i + spec.label + (spec.helpId ?? ''))}
     <button
       class="key {spec.style ?? 'num'}"
+      class:filler={!spec.label}
       style:grid-column="span {spec.span ?? 1}"
+      disabled={!spec.label}
       on:click={() => press(spec)}
       use:longPress={{ onLongPress: () => showHelp(spec) }}
     >
@@ -148,15 +164,12 @@
     transition: transform 0.05s ease, background 0.1s ease;
     user-select: none;
     -webkit-user-select: none;
-    /* iOS: suppress the long-press callout so our handler runs cleanly. */
     -webkit-touch-callout: none;
   }
-  .key:active {
-    transform: translateY(1px);
-    background: linear-gradient(180deg, #1c2330 0%, #2a3340 100%);
-  }
-  .key.fn { background: linear-gradient(180deg, #3b3a8a 0%, #2a2a64 100%); }
+  .key:active { transform: translateY(1px); background: linear-gradient(180deg, #1c2330 0%, #2a3340 100%); }
+  .key.fn   { background: linear-gradient(180deg, #3b3a8a 0%, #2a2a64 100%); }
   .key.unit { background: linear-gradient(180deg, #485a76 0%, #2f3e55 100%); }
-  .key.op { background: linear-gradient(180deg, #d97706 0%, #a55906 100%); }
+  .key.op   { background: linear-gradient(180deg, #d97706 0%, #a55906 100%); }
   .key.ctrl { background: linear-gradient(180deg, #7a1f1f 0%, #581515 100%); }
+  .key.filler { visibility: hidden; cursor: default; }
 </style>

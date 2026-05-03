@@ -1,9 +1,4 @@
 //! Web assembly bindings for the calculator.
-//!
-//! The bridge is intentionally minimal: the host (JS/TS) sends string-tagged
-//! key events as JSON, and gets back a snapshot {display, mode, tape}.
-//! We never expose `Rational64` or `Length` directly across the boundary —
-//! everything is rendered to display-ready strings on the Rust side.
 
 use calc_core::calculator::{
     BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey, MemoryOp,
@@ -28,7 +23,11 @@ enum WasmKey {
     Equals,
     Unit { unit: String },
     Function { fun: String },
-    Convert { format: String, denom: Option<u32>, precision: Option<u8> },
+    Convert {
+        format: String,
+        denom: Option<u32>,
+        precision: Option<u8>,
+    },
     Memory { op: String, slot: Option<u8> },
     Backspace,
     Clear,
@@ -38,7 +37,6 @@ enum WasmKey {
 #[derive(Serialize)]
 struct Snapshot {
     display: String,
-    /// JSON-stringified tape.
     tape: serde_json::Value,
     error: Option<String>,
 }
@@ -49,13 +47,9 @@ impl WasmCalculator {
     pub fn new() -> Self {
         #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
-        Self {
-            inner: Calculator::new(),
-        }
+        Self { inner: Calculator::new() }
     }
 
-    /// Send a key event, encoded as a JSON object matching `WasmKey`.
-    /// Returns a JSON snapshot of the display + tape.
     #[wasm_bindgen]
     pub fn handle(&mut self, json: JsValue) -> Result<JsValue, JsError> {
         let wk: WasmKey = serde_wasm_bindgen::from_value(json)
@@ -73,11 +67,28 @@ impl WasmCalculator {
         serde_wasm_bindgen::to_value(&snap).map_err(|e| JsError::new(&format!("ser: {e}")))
     }
 
-    /// Return current display string without changing state.
     #[wasm_bindgen(js_name = displayString)]
-    pub fn display_string(&self) -> String {
-        self.inner.display_string()
+    pub fn display_string(&self) -> String { self.inner.display_string() }
+
+    #[wasm_bindgen(js_name = exportMarkdown)]
+    pub fn export_markdown(&self) -> String { self.inner.tape.to_markdown() }
+
+    #[wasm_bindgen(js_name = exportJson)]
+    pub fn export_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.inner.tape)
+            .map_err(|e| JsError::new(&format!("export: {e}")))
     }
+
+    #[wasm_bindgen(js_name = loadJsonTape)]
+    pub fn load_json_tape(&mut self, json: &str) -> Result<(), JsError> {
+        let tape: calc_core::tape::Tape = serde_json::from_str(json)
+            .map_err(|e| JsError::new(&format!("parse: {e}")))?;
+        self.inner.tape = tape;
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = clearTape)]
+    pub fn clear_tape(&mut self) { self.inner.tape.clear(); }
 }
 
 fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
@@ -120,31 +131,21 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
             "square" => FunctionKey::Square,
             "recip" | "reciprocal" => FunctionKey::Reciprocal,
             "percent" => FunctionKey::Percent,
+            "corner" => FunctionKey::Corner,
+            "spring" => FunctionKey::Spring,
+            "miter" => FunctionKey::Miter,
+            "bevel" => FunctionKey::Bevel,
             other => return Err(format!("unknown function {other}")),
         }),
         WasmKey::Convert { format, denom, precision } => {
             let fmt = match format.as_str() {
-                "feet_inch_fraction" => LengthFormat::FeetInchFraction {
-                    denom: denom.unwrap_or(16),
-                },
-                "decimal_feet" => LengthFormat::DecimalFeet {
-                    precision: precision.unwrap_or(4),
-                },
-                "decimal_inches" => LengthFormat::DecimalInches {
-                    precision: precision.unwrap_or(4),
-                },
-                "yards" => LengthFormat::Yards {
-                    precision: precision.unwrap_or(4),
-                },
-                "mm" => LengthFormat::Millimeters {
-                    precision: precision.unwrap_or(0),
-                },
-                "cm" => LengthFormat::Centimeters {
-                    precision: precision.unwrap_or(2),
-                },
-                "m" => LengthFormat::Meters {
-                    precision: precision.unwrap_or(4),
-                },
+                "feet_inch_fraction" => LengthFormat::FeetInchFraction { denom: denom.unwrap_or(16) },
+                "decimal_feet" => LengthFormat::DecimalFeet { precision: precision.unwrap_or(4) },
+                "decimal_inches" => LengthFormat::DecimalInches { precision: precision.unwrap_or(4) },
+                "yards" => LengthFormat::Yards { precision: precision.unwrap_or(4) },
+                "mm" => LengthFormat::Millimeters { precision: precision.unwrap_or(0) },
+                "cm" => LengthFormat::Centimeters { precision: precision.unwrap_or(2) },
+                "m" => LengthFormat::Meters { precision: precision.unwrap_or(4) },
                 other => return Err(format!("unknown format {other}")),
             };
             KeyEvent::Convert(fmt)

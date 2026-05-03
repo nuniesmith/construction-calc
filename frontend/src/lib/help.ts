@@ -52,6 +52,26 @@ export const HELP: Record<string, HelpEntry> = {
     body: 'After an operator, treats the entered number as a percent of the previous operand.',
     example: '200 + 5 % = adds 5% of 200 = 210'
   },
+  // -------- Compound miter --------
+  corner: {
+    title: 'Corner angle',
+    body: 'Wall corner viewed from above. 90° for a standard inside or outside corner. Enter a value (degrees) then press Corner.',
+    example: '90 [Corner]'
+  },
+  spring: {
+    title: 'Spring angle',
+    body: 'Angle between the back of the molding and the wall. 38° and 45° are typical for crown — usually printed on the box.',
+    example: '38 [Spring]'
+  },
+  miter: {
+    title: 'Miter angle',
+    body: 'Saw rotation. Press after entering both Corner and Spring to get the miter setting.'
+  },
+  bevel: {
+    title: 'Bevel angle',
+    body: 'Blade tilt off vertical. Press after entering both Corner and Spring to get the bevel setting.'
+  },
+  // -------- Units, control --------
   ft: { title: 'Feet', body: 'Tag the typed number as feet. Press multiple unit keys to build a compound length like 5 ft 6 in.' },
   in: { title: 'Inch', body: 'Tag the typed number as inches. Use the / key to enter a fraction like 3 / 8 [Inch].' },
   yd: { title: 'Yards', body: 'Tag the typed number as yards.' },
@@ -65,5 +85,5 @@ export const HELP: Record<string, HelpEntry> = {
   negate: { title: 'Toggle sign', body: 'Flip the sign of the entry buffer.' },
   bs: { title: 'Backspace', body: 'Remove the last typed digit, decimal point, or fraction component.' },
   c: { title: 'Clear entry', body: 'Reset the entry buffer to zero. Pending operators and memory are preserved.' },
-  ac: { title: 'All clear', body: 'Reset everything: entry, pending op, rafter state. Memory is preserved.' }
+  ac: { title: 'All clear', body: 'Reset everything: entry, pending op, rafter state, miter state. Memory is preserved.' }
 };

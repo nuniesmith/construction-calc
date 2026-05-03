@@ -3,6 +3,7 @@
   import Display from '$lib/Display.svelte';
   import Keypad from '$lib/Keypad.svelte';
   import Tape from '$lib/Tape.svelte';
+  import TapeToolbar from '$lib/TapeToolbar.svelte';
   import FormatStrip from '$lib/FormatStrip.svelte';
   import HelpOverlay from '$lib/HelpOverlay.svelte';
   import { calc } from '$lib/calc';
@@ -29,13 +30,14 @@
   });
 </script>
 
-<svelte:head>
-  <title>Construction Calc</title>
-</svelte:head>
+<svelte:head><title>Construction Calc</title></svelte:head>
 
 <main>
   <header>
-    <h1>Construction Calc</h1>
+    <div class="title-row">
+      <h1>Construction Calc</h1>
+      <a class="ez-link" href="/ez">EZ Calc →</a>
+    </div>
     <p class="tag">Long-press any key for help.</p>
   </header>
 
@@ -51,6 +53,7 @@
     <FormatStrip />
     <Display />
     <Tape />
+    <TapeToolbar />
     <Keypad bind:helpKey />
     <HelpOverlay bind:helpKey />
   {/if}
@@ -63,36 +66,13 @@
     color: #f4f6fa;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
-  main {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    min-height: 100vh;
-  }
-  header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-  .tag {
-    margin: 0;
-    color: #94a3b8;
-    font-size: 0.8rem;
-  }
-  .loading,
-  .error,
-  .hint {
-    color: #94a3b8;
-  }
-  .error {
-    color: #ff7676;
-  }
-  code {
-    background: rgba(255, 255, 255, 0.06);
-    padding: 0.1rem 0.4rem;
-    border-radius: 0.3rem;
-  }
+  main { max-width: 480px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 100vh; }
+  .title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+  .ez-link { color: #fcd34d; text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.5rem; border: 1px solid rgba(252, 211, 77, 0.3); border-radius: 0.3rem; }
+  .ez-link:hover { background: rgba(252, 211, 77, 0.1); }
+  .tag { margin: 0; color: #94a3b8; font-size: 0.8rem; }
+  .loading, .error, .hint { color: #94a3b8; }
+  .error { color: #ff7676; }
+  code { background: rgba(255, 255, 255, 0.06); padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
 </style>

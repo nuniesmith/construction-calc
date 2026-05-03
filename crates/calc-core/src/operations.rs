@@ -6,6 +6,7 @@
 
 pub mod board_feet;
 pub mod circle;
+pub mod compound_miter;
 pub mod materials;
 pub mod polygon;
 pub mod rafter;
