@@ -1,5 +1,6 @@
 <script lang="ts">
   import { calc } from './calc';
+  import { rationalApprox, rationalLength } from './tapeFormat';
   $: snapshot = calc.snapshot;
 
   /**
@@ -36,83 +37,6 @@
       return { kind: 'note', text: e.Note };
     }
     return { kind: 'unknown', text: JSON.stringify(e) };
-  }
-
-  /**
-   * Render a Rational64 as a decimal with sensible precision. Uses
-   * BigInt for the division so we don't lose precision for the giant
-   * denominators that can come out of metric conversions
-   * (1mm = 5/127 in, so 100mm = 500/127 — fine — but a long chain of
-   * conversions can build up much larger numerators/denominators that
-   * exceed Number.MAX_SAFE_INTEGER).
-   */
-  function rationalApprox(r: { numer: number | string; denom: number | string }, precision = 4): string {
-    if (!r) return '?';
-    const n = BigInt(r.numer);
-    const d = BigInt(r.denom);
-    if (d === 0n) return 'NaN';
-    const sign = (n < 0n) !== (d < 0n) ? '-' : '';
-    const an = n < 0n ? -n : n;
-    const ad = d < 0n ? -d : d;
-    const whole = an / ad;
-    let rem = an % ad;
-    if (rem === 0n) return `${sign}${whole}`;
-    let frac = '';
-    for (let i = 0; i < precision && rem !== 0n; i++) {
-      rem *= 10n;
-      frac += (rem / ad).toString();
-      rem %= ad;
-    }
-    // Trim trailing zeros
-    frac = frac.replace(/0+$/, '');
-    return frac ? `${sign}${whole}.${frac}` : `${sign}${whole}`;
-  }
-
-  /**
-   * Render a Rational64 inches value as feet-inch-fraction at 1/16"
-   * precision — matches the calculator's default display mode.
-   */
-  function rationalLength(r: { numer: number | string; denom: number | string }): {
-    kind: string;
-    text: string;
-    title: string;
-  } {
-    const n = BigInt(r.numer);
-    const d = BigInt(r.denom);
-    const totalSixteenths = (n * 16n + (n >= 0n ? d / 2n : -(d / 2n))) / d;
-    const negative = totalSixteenths < 0n;
-    const abs = negative ? -totalSixteenths : totalSixteenths;
-    const totalInches = abs / 16n;
-    const sixteenths = Number(abs % 16n);
-    const feet = totalInches / 12n;
-    const inches = totalInches % 12n;
-
-    const sign = negative ? '-' : '';
-    let text: string;
-    let frac = '';
-    if (sixteenths !== 0) {
-      // Reduce 16ths to lowest terms: gcd with 16 is 1, 2, 4, 8, or 16.
-      let num = sixteenths;
-      let den = 16;
-      while (num % 2 === 0 && den % 2 === 0) {
-        num /= 2;
-        den /= 2;
-      }
-      frac = `${num}/${den}`;
-    }
-
-    if (feet === 0n && inches === 0n && !frac) text = '0"';
-    else if (feet > 0n && inches === 0n && !frac) text = `${feet}'`;
-    else if (feet === 0n && !frac) text = `${inches}"`;
-    else if (feet === 0n && inches === 0n) text = `${frac}"`;
-    else if (!frac) text = feet > 0n ? `${feet}' ${inches}"` : `${inches}"`;
-    else if (feet === 0n) text = `${inches}-${frac}"`;
-    else if (inches === 0n) text = `${feet}' ${frac}"`;
-    else text = `${feet}' ${inches}-${frac}"`;
-
-    // Tooltip with the exact rational for the curious.
-    const title = `Exact: ${r.numer}/${r.denom} in`;
-    return { kind: 'result', text: `${sign}${text}`, title };
   }
 
   $: entries = (($snapshot.tape as any)?.entries as any[]) ?? [];

@@ -7,7 +7,8 @@
   interface ButtonSpec {
     label: string;
     helpId?: string;
-    key: Key;
+    /** Omitted on filler cells that pad a row to its full grid width. */
+    key?: Key;
     style?: 'fn' | 'op' | 'num' | 'unit' | 'ctrl';
     span?: number;
   }
@@ -44,9 +45,11 @@
       fnKey('Spring', 'spring'),
       fnKey('Miter', 'miter'),
       fnKey('Bevel', 'bevel'),
-      // Two empty slots so the row stays a clean 6 cells.
-      { label: '', key: { type: 'clear' }, style: 'fn', span: 1 },
-      { label: '', key: { type: 'clear' }, style: 'fn', span: 1 }
+      // Two filler cells so the row stays a clean 6 wide. No `key` so that
+      // even if the disabled/visibility-hidden guards are stripped, a stray
+      // click can't accidentally clear the calculator.
+      { label: '', style: 'fn', span: 1 },
+      { label: '', style: 'fn', span: 1 }
     ]
   };
 
@@ -92,7 +95,7 @@
   $: layout = [...functionPages[page], ...sharedRows];
 
   function press(spec: ButtonSpec) {
-    if (!spec.label) return; // empty filler cell
+    if (!spec.key) return; // filler cell, no action
     calc.send(spec.key);
   }
 

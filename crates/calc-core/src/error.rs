@@ -21,6 +21,9 @@ pub enum ParseError {
 
     #[error("denominator must be a power of two between 2 and 64, got {0}")]
     InvalidDenominator(u32),
+
+    #[error("decimal precision must be 0..=12, got {0}")]
+    InvalidPrecision(u8),
 }
 
 #[derive(Debug, Clone, PartialEq, Error)]

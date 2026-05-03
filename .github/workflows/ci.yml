@@ -90,6 +90,10 @@ jobs:
         working-directory: frontend
         run: npx svelte-kit sync && npx svelte-check --tsconfig ./tsconfig.json
 
+      - name: Test
+        working-directory: frontend
+        run: npx vitest run
+
       - name: Build
         working-directory: frontend
         # Skip build:wasm — we restored a pre-built bundle from the artifact.
