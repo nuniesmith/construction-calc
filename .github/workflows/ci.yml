@@ -37,7 +37,7 @@ jobs:
 
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test -p calc-core --all-features
+      - run: cargo test --workspace --all-features
 
   wasm:
     name: Build WASM bundle

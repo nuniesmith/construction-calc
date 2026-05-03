@@ -78,16 +78,12 @@ pub struct ArcSolution {
 
 pub fn solve_arc(radius: Length, central_angle: Angle) -> Result<ArcSolution, CalcError> {
     if radius.is_zero() || radius.is_negative() {
-        return Err(CalcError::Domain(
-            "arc radius must be positive".to_string(),
-        ));
+        return Err(CalcError::Domain("arc radius must be positive".to_string()));
     }
     let r = rational_to_f64(radius.inches());
     let theta = central_angle.radians();
     if theta <= 0.0 {
-        return Err(CalcError::Domain(
-            "arc angle must be positive".to_string(),
-        ));
+        return Err(CalcError::Domain("arc angle must be positive".to_string()));
     }
 
     let arc_in = r * theta;

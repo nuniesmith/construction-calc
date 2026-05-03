@@ -34,9 +34,10 @@ use crate::angle::Angle;
 use crate::error::CalcError;
 
 /// Two ways the user can describe their molding's spring angle.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SpringMode {
     /// Angle between molding back and wall (38° and 45° are standard).
+    #[default]
     SpringFromWall,
     /// Angle between molding back and ceiling. Equal to 90° − spring-from-wall.
     SlopeFromCeiling,

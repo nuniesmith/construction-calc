@@ -21,12 +21,17 @@ export function longPress(node: HTMLElement, options: LongPressOptions) {
   let startX = 0;
   let startY = 0;
   let opts = options;
+  // Set when the long-press timer fires; consumed by the next click so the
+  // button's normal action doesn't run after the help overlay opens.
+  let longPressed = false;
 
   function start(e: PointerEvent) {
     startX = e.clientX;
     startY = e.clientY;
+    longPressed = false;
     timer = setTimeout(() => {
       timer = null;
+      longPressed = true;
       opts.onLongPress();
     }, opts.delay ?? 500);
   }
@@ -48,11 +53,21 @@ export function longPress(node: HTMLElement, options: LongPressOptions) {
     }
   }
 
+  function clickGuard(e: MouseEvent) {
+    if (longPressed) {
+      longPressed = false;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }
+
   node.addEventListener('pointerdown', start);
   node.addEventListener('pointermove', move);
   node.addEventListener('pointerup', cancel);
   node.addEventListener('pointercancel', cancel);
   node.addEventListener('pointerleave', cancel);
+  // Capture phase so we run before the button's bound on:click handler.
+  node.addEventListener('click', clickGuard, true);
 
   return {
     update(newOptions: LongPressOptions) {
@@ -65,6 +80,7 @@ export function longPress(node: HTMLElement, options: LongPressOptions) {
       node.removeEventListener('pointerup', cancel);
       node.removeEventListener('pointercancel', cancel);
       node.removeEventListener('pointerleave', cancel);
+      node.removeEventListener('click', clickGuard, true);
     }
   };
 }

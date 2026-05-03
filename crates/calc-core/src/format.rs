@@ -16,15 +16,29 @@ use crate::length::Length;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum LengthFormat {
     /// e.g. `8' 5-3/8"`. `denom` must be a power of two from 2 to 64.
-    FeetInchFraction { denom: u32 },
+    FeetInchFraction {
+        denom: u32,
+    },
     /// e.g. `8.4479'`
-    DecimalFeet { precision: u8 },
+    DecimalFeet {
+        precision: u8,
+    },
     /// e.g. `101.375"`
-    DecimalInches { precision: u8 },
-    Yards { precision: u8 },
-    Millimeters { precision: u8 },
-    Centimeters { precision: u8 },
-    Meters { precision: u8 },
+    DecimalInches {
+        precision: u8,
+    },
+    Yards {
+        precision: u8,
+    },
+    Millimeters {
+        precision: u8,
+    },
+    Centimeters {
+        precision: u8,
+    },
+    Meters {
+        precision: u8,
+    },
 }
 
 impl LengthFormat {

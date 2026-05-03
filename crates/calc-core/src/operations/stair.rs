@@ -9,9 +9,9 @@
 //!    closest to the user's preferred target (default 7-1/2").
 //! 3. From that, derive tread depth, stair length, headroom check.
 
-use num_rational::Rational64;
 use crate::error::CalcError;
 use crate::length::Length;
+use num_rational::Rational64;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StairInputs {
@@ -51,9 +51,7 @@ pub struct StairSolution {
 
 pub fn solve(inputs: &StairInputs) -> Result<StairSolution, CalcError> {
     if inputs.total_rise.is_zero() || inputs.total_rise.is_negative() {
-        return Err(CalcError::Domain(
-            "total rise must be positive".to_string(),
-        ));
+        return Err(CalcError::Domain("total rise must be positive".to_string()));
     }
 
     // Pick riser count that minimizes |rise/n - target_riser|.
@@ -76,13 +74,12 @@ pub fn solve(inputs: &StairInputs) -> Result<StairSolution, CalcError> {
             }
         }
         let cost = (per - target_in).abs();
-        if best.map_or(true, |(_, c)| cost < c) {
+        if best.is_none_or(|(_, c)| cost < c) {
             best = Some((n_u, cost));
         }
     }
-    let (riser_count, _) = best.ok_or_else(|| {
-        CalcError::Domain("no legal riser configuration found".to_string())
-    })?;
+    let (riser_count, _) =
+        best.ok_or_else(|| CalcError::Domain("no legal riser configuration found".to_string()))?;
 
     // Riser height = total_rise / riser_count, exact.
     let riser_height = inputs.total_rise / Rational64::from_integer(riser_count as i64);
@@ -97,10 +94,8 @@ pub fn solve(inputs: &StairInputs) -> Result<StairSolution, CalcError> {
     let r_in = rational_to_f64(inputs.total_rise.inches());
     let run_in = rational_to_f64(total_run.inches());
     let stringer_in = (r_in * r_in + run_in * run_in).sqrt();
-    let stringer_length = Length::from_inches(Rational64::new(
-        (stringer_in * 64.0).round() as i64,
-        64,
-    ));
+    let stringer_length =
+        Length::from_inches(Rational64::new((stringer_in * 64.0).round() as i64, 64));
 
     Ok(StairSolution {
         riser_count,

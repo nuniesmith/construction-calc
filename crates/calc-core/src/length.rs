@@ -74,8 +74,7 @@ impl Length {
     pub fn from_feet_inches(ft: i64, inches: Rational64) -> Self {
         let sign = if ft < 0 { -1 } else { 1 };
         let abs_ft = ft.abs();
-        let total =
-            Rational64::from_integer(abs_ft * consts::IN_PER_FT) + inches.abs();
+        let total = Rational64::from_integer(abs_ft * consts::IN_PER_FT) + inches.abs();
         Self {
             inches: total * Rational64::from_integer(sign),
         }
@@ -254,7 +253,10 @@ impl fmt::Display for Length {
         write!(
             f,
             "{}",
-            crate::format::format_length(self, crate::format::LengthFormat::FeetInchFraction { denom: 16 })
+            crate::format::format_length(
+                self,
+                crate::format::LengthFormat::FeetInchFraction { denom: 16 }
+            )
         )
     }
 }

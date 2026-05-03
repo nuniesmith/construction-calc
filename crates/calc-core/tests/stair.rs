@@ -1,5 +1,5 @@
-use calc_core::operations::stair::{solve, StairInputs};
 use calc_core::Length;
+use calc_core::operations::stair::{StairInputs, solve};
 use num_rational::Rational64;
 
 #[test]

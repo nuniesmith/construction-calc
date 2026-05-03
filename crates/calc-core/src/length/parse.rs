@@ -11,7 +11,7 @@
 use num_rational::Rational64;
 use num_traits::Zero;
 
-use super::{consts, Length};
+use super::{Length, consts};
 use crate::error::ParseError;
 
 pub fn parse_length(input: &str) -> Result<Length, ParseError> {
@@ -24,9 +24,9 @@ pub fn parse_length(input: &str) -> Result<Length, ParseError> {
     let normalized: String = s
         .chars()
         .map(|c| match c {
-            '\u{2019}' | '\u{2032}' => '\'',  // ’ ′ -> '
-            '\u{201D}' | '\u{2033}' => '"',   // ” ″ -> "
-            '\u{2013}' | '\u{2014}' => '-',   // – —
+            '\u{2019}' | '\u{2032}' => '\'', // ’ ′ -> '
+            '\u{201D}' | '\u{2033}' => '"',  // ” ″ -> "
+            '\u{2013}' | '\u{2014}' => '-',  // – —
             _ => c,
         })
         .collect();
@@ -148,7 +148,7 @@ pub(crate) fn parse_decimal_or_fraction(s: &str) -> Result<Rational64, ParseErro
     }
 
     // Mixed number: "5 1/2" or "5-1/2"
-    let separator = s.find(|c: char| c == ' ' || c == '-');
+    let separator = s.find([' ', '-']);
     if let Some(idx) = separator {
         let whole = &s[..idx];
         let rest = s[idx + 1..].trim();
@@ -235,7 +235,6 @@ fn parse_decimal(s: &str) -> Result<Rational64, ParseError> {
         .checked_pow(frac_part.len() as u32)
         .ok_or_else(|| ParseError::InvalidNumber(s.to_string()))?;
 
-    let total =
-        Rational64::from_integer(int_val) + Rational64::new(frac_num, denom);
+    let total = Rational64::from_integer(int_val) + Rational64::new(frac_num, denom);
     Ok(total * Rational64::from_integer(sign))
 }

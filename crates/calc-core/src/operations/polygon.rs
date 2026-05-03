@@ -87,9 +87,7 @@ pub fn solve(
     let perimeter = side_length * Rational64::from_integer(sides as i64);
 
     // Area via exact formula on reified side+apothem.
-    let area_in2 = side_length.inches()
-        * apothem.inches()
-        * Rational64::new(sides as i64, 2);
+    let area_in2 = side_length.inches() * apothem.inches() * Rational64::new(sides as i64, 2);
 
     let interior_deg = ((n - 2.0) * 180.0) / n;
     let central_deg = 360.0 / n;

@@ -57,7 +57,11 @@ impl Angle {
     /// Decompose into (sign, degrees, minutes, seconds_rational).
     pub fn to_dms(&self) -> (i64, u64, u64, Rational64) {
         let sign = if *self.degrees.numer() < 0 { -1 } else { 1 };
-        let abs = if sign < 0 { -self.degrees } else { self.degrees };
+        let abs = if sign < 0 {
+            -self.degrees
+        } else {
+            self.degrees
+        };
         let whole_deg = abs.to_integer();
         let rem = abs - Rational64::from_integer(whole_deg);
         let total_min = rem * Rational64::from_integer(60);
