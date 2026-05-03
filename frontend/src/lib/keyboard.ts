@@ -22,9 +22,20 @@ import type { Calc } from './calc';
 
 export function bindKeyboard(calc: Calc): () => void {
   function onKey(e: KeyboardEvent) {
-    // Ignore when typing in form inputs (none in this app, but futureproof).
+    // Ignore when typing in form inputs (the EZ Calc forms have several).
     const target = e.target as HTMLElement | null;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    // Don't hijack browser/OS shortcuts (Ctrl+R reload, Cmd+0 zoom reset,
+    // Alt+Tab, etc.). Note: Shift is fine — it's how `?` and `+` are typed.
+    if (e.ctrlKey || e.metaKey || e.altKey) {
       return;
     }
     const k = e.key;

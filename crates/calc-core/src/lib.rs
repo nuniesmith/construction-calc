@@ -32,6 +32,7 @@ pub mod calculator;
 pub mod error;
 pub mod format;
 pub mod length;
+pub(crate) mod numeric;
 pub mod operations;
 pub mod tape;
 pub mod value;

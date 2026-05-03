@@ -11,6 +11,7 @@ use num_traits::Zero;
 use crate::error::CalcError;
 use crate::format::LengthFormat;
 use crate::length::Length;
+use crate::numeric::{rational_from_f64, rational_from_f64_on_grid, rational_to_f64};
 use crate::operations::compound_miter_state::{MiterField, PartialCompoundMiter};
 use crate::operations::rafter::{PartialRafter, RafterField};
 use crate::tape::{Tape, TapeEntry};
@@ -90,6 +91,10 @@ pub enum KeyEvent {
     Backspace,
     Clear,
     ClearAll,
+    /// Append a free-form labelled note to the tape (no other state change).
+    /// Used by the EZ Calc forms layer to record a real entry instead of
+    /// faking it with digit-typed values.
+    Note(String),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -325,6 +330,9 @@ impl Calculator {
                     mode: self.mode,
                     ..Self::new()
                 };
+            }
+            KeyEvent::Note(text) => {
+                self.tape.push(TapeEntry::Note(text));
             }
         }
         Ok(())
@@ -596,29 +604,6 @@ fn rafter_field_for(f: FunctionKey) -> Option<RafterField> {
         FunctionKey::Diagonal => Some(RafterField::Diagonal),
         _ => None,
     }
-}
-
-fn rational_to_f64(r: num_rational::Rational64) -> f64 {
-    *r.numer() as f64 / *r.denom() as f64
-}
-
-/// Pin an f64 to a rational on a 1/grid grid, refusing non-finite or
-/// out-of-range values rather than truncating to garbage. The old version
-/// used a saturating `as i64` cast, which silently produced i64::MAX from
-/// `tan(90°)` and similar.
-fn rational_from_f64_on_grid(x: f64, grid: i64) -> Result<num_rational::Rational64, CalcError> {
-    if !x.is_finite() {
-        return Err(CalcError::Domain(format!("non-finite result: {x}")));
-    }
-    let scaled = x * grid as f64;
-    if !scaled.is_finite() || scaled.abs() >= i64::MAX as f64 {
-        return Err(CalcError::Domain(format!("result out of range: {x}")));
-    }
-    Ok(num_rational::Rational64::new(scaled.round() as i64, grid))
-}
-
-fn rational_from_f64(x: f64) -> Result<num_rational::Rational64, CalcError> {
-    rational_from_f64_on_grid(x, 1_000_000)
 }
 
 fn sqrt_value(v: Value) -> Result<Value, CalcError> {

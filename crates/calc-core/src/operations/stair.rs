@@ -11,6 +11,7 @@
 
 use crate::error::CalcError;
 use crate::length::Length;
+use crate::numeric::{length_from_inches_rounded, rational_to_f64};
 use num_rational::Rational64;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -94,8 +95,7 @@ pub fn solve(inputs: &StairInputs) -> Result<StairSolution, CalcError> {
     let r_in = rational_to_f64(inputs.total_rise.inches());
     let run_in = rational_to_f64(total_run.inches());
     let stringer_in = (r_in * r_in + run_in * run_in).sqrt();
-    let stringer_length =
-        Length::from_inches(Rational64::new((stringer_in * 64.0).round() as i64, 64));
+    let stringer_length = length_from_inches_rounded(stringer_in, 64)?;
 
     Ok(StairSolution {
         riser_count,
@@ -105,8 +105,4 @@ pub fn solve(inputs: &StairInputs) -> Result<StairSolution, CalcError> {
         total_run,
         stringer_length,
     })
-}
-
-fn rational_to_f64(r: Rational64) -> f64 {
-    *r.numer() as f64 / *r.denom() as f64
 }

@@ -120,17 +120,7 @@
       ` ${sheet} @ ${wastePct}% waste)`,
       ` → ${result.sheetsNeeded} sheets`
     ].join('');
-    // Use a no-op key event sequence to push a note. The cleanest way
-    // without adding a new key event type is to compute and "=" once
-    // with the final number — but that loses the prose. For now: emit a
-    // calculation that produces the count as a scalar so it appears on
-    // the tape, and rely on the user copying the rendered result with
-    // the toolbar. A future improvement: a `Note` key event that takes
-    // an arbitrary string.
-    const n = result.sheetsNeeded;
-    calc.send({ type: 'clear' });
-    String(n).split('').forEach(d => calc.send({ type: 'digit', value: parseInt(d) }));
-    calc.send({ type: 'equals' });
+    calc.send({ type: 'note', text: summary });
     saved = summary;
   }
 

@@ -5,6 +5,21 @@
   let copied = false;
   let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Inline message displayed above the toolbar — replaces alert() popups.
+  // null = hidden; 'error' tints red; 'info' is neutral.
+  let message: { kind: 'error' | 'info'; text: string } | null = null;
+  let messageTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Two-step confirm for destructive Clear — replaces window.confirm().
+  let clearArmed = false;
+  let clearArmedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flash(kind: 'error' | 'info', text: string, ms = 4000) {
+    message = { kind, text };
+    if (messageTimer) clearTimeout(messageTimer);
+    messageTimer = setTimeout(() => (message = null), ms);
+  }
+
   function timestampedFilename(ext: string): string {
     // YYYY-MM-DD_HH-MM filenames sort cleanly in any file manager and
     // are filesystem-safe everywhere.
@@ -42,17 +57,31 @@
     if (!txt) return;
     try {
       calc.loadJsonTape(txt);
+      flash('info', 'Tape loaded.');
     } catch (e) {
-      alert(`Could not load tape: ${e instanceof Error ? e.message : String(e)}`);
+      flash('error', `Could not load tape: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
   function clearTape() {
-    if (confirm('Clear the tape? This cannot be undone.')) {
-      calc.clearTape();
+    if (!clearArmed) {
+      // First click arms the action; the button label changes to confirm.
+      // After 3 s without a second click, reset.
+      clearArmed = true;
+      if (clearArmedTimer) clearTimeout(clearArmedTimer);
+      clearArmedTimer = setTimeout(() => (clearArmed = false), 3000);
+      return;
     }
+    clearArmed = false;
+    if (clearArmedTimer) clearTimeout(clearArmedTimer);
+    calc.clearTape();
+    flash('info', 'Tape cleared.');
   }
 </script>
+
+{#if message}
+  <p class="msg {message.kind}" role="status" aria-live="polite">{message.text}</p>
+{/if}
 
 <div class="toolbar">
   <button on:click={copyMarkdown} title="Copy markdown to clipboard">
@@ -61,7 +90,14 @@
   <button on:click={downloadMarkdown} title="Download as Markdown">.md</button>
   <button on:click={downloadJson} title="Download as JSON">.json</button>
   <button on:click={loadJson} title="Load tape from JSON file">Load</button>
-  <button on:click={clearTape} class="danger" title="Clear the tape">Clear</button>
+  <button
+    on:click={clearTape}
+    class="danger"
+    class:armed={clearArmed}
+    title={clearArmed ? 'Click again to confirm' : 'Clear the tape'}
+  >
+    {clearArmed ? 'Confirm clear' : 'Clear'}
+  </button>
 </div>
 
 <style>
@@ -87,5 +123,26 @@
   }
   button.danger:hover {
     background: rgba(255, 0, 0, 0.1);
+  }
+  button.danger.armed {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: #ef4444;
+    color: #fee2e2;
+  }
+  .msg {
+    margin: 0 0 0.4rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+  }
+  .msg.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fecaca;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+  }
+  .msg.info {
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 </style>
