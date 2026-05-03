@@ -20,12 +20,6 @@ pub struct PartialCompoundMiter {
     pub spring_mode: SpringMode,
 }
 
-impl Default for SpringMode {
-    fn default() -> Self {
-        SpringMode::SpringFromWall
-    }
-}
-
 impl PartialCompoundMiter {
     pub fn set_field(&mut self, field: MiterField, v: Value) -> Result<(), CalcError> {
         let angle = match v {

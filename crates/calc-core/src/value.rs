@@ -21,6 +21,10 @@ pub enum Value {
     Angle(Angle),
 }
 
+// add/sub/mul/div take a `Result` and use dimension-aware promotion (e.g.
+// Length × Length = Area), so they can't be exact `std::ops::*` impls.
+// Allow the `should_implement_trait` lint that otherwise fires on the names.
+#[allow(clippy::should_implement_trait)]
 impl Value {
     pub fn zero_scalar() -> Self {
         Value::Scalar(Rational64::zero())
@@ -79,9 +83,7 @@ impl Value {
             (Value::Scalar(s), Value::Volume(v)) | (Value::Volume(v), Value::Scalar(s)) => {
                 Ok(Value::Volume(v * s))
             }
-            (Value::Length(a), Value::Length(b)) => {
-                Ok(Value::Area(a.inches() * b.inches()))
-            }
+            (Value::Length(a), Value::Length(b)) => Ok(Value::Area(a.inches() * b.inches())),
             (Value::Length(l), Value::Area(a)) | (Value::Area(a), Value::Length(l)) => {
                 Ok(Value::Volume(l.inches() * a))
             }
@@ -103,9 +105,7 @@ impl Value {
             }
             (Value::Volume(v), Value::Scalar(s)) => Ok(Value::Volume(v / s)),
             (Value::Volume(v), Value::Length(l)) => Ok(Value::Area(v / l.inches())),
-            (Value::Volume(v), Value::Area(a)) => {
-                Ok(Value::Length(Length::from_inches(v / a)))
-            }
+            (Value::Volume(v), Value::Area(a)) => Ok(Value::Length(Length::from_inches(v / a))),
             _ => Err(CalcError::TypeMismatch),
         }
     }

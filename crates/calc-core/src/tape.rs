@@ -57,8 +57,7 @@ impl Tape {
                 }
                 TapeEntry::RafterSolution(r) => {
                     let _ = writeln!(out, "{}. **Rafter solution**", i + 1);
-                    let pitch_per_12 =
-                        r.pitch_ratio * num_rational::Rational64::from_integer(12);
+                    let pitch_per_12 = r.pitch_ratio * num_rational::Rational64::from_integer(12);
                     let _ = writeln!(
                         out,
                         "    - pitch: {}/12",
@@ -96,14 +95,8 @@ fn fmt_value(v: &Value) -> String {
     match v {
         Value::Scalar(r) => crate::format::rational_to_decimal_string(*r, 6),
         Value::Length(l) => fmt_length(l),
-        Value::Area(r) => format!(
-            "{} sq in",
-            crate::format::rational_to_decimal_string(*r, 4)
-        ),
-        Value::Volume(r) => format!(
-            "{} cu in",
-            crate::format::rational_to_decimal_string(*r, 4)
-        ),
+        Value::Area(r) => format!("{} sq in", crate::format::rational_to_decimal_string(*r, 4)),
+        Value::Volume(r) => format!("{} cu in", crate::format::rational_to_decimal_string(*r, 4)),
         Value::Angle(a) => a.to_string(),
     }
 }

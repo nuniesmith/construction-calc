@@ -1,5 +1,5 @@
-use calc_core::format::{format_length, LengthFormat};
 use calc_core::Length;
+use calc_core::format::{LengthFormat, format_length};
 use num_rational::Rational64;
 
 #[test]
@@ -123,12 +123,7 @@ fn formats_metric() {
 #[test]
 fn round_trip_through_feet_inch_fraction() {
     // Anything with a denom that's a power of two ≤ 64 should round-trip.
-    let cases = [
-        "8' 5-3/8\"",
-        "12-1/16\"",
-        "5'",
-        "0\"",
-    ];
+    let cases = ["8' 5-3/8\"", "12-1/16\"", "5'", "0\""];
     for c in &cases {
         let parsed = Length::parse(c).unwrap();
         let formatted = format_length(&parsed, LengthFormat::FeetInchFraction { denom: 64 });

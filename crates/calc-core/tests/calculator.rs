@@ -1,5 +1,5 @@
-use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey};
 use calc_core::Value;
+use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey};
 use num_rational::Rational64;
 
 fn typed(seq: &[KeyEvent]) -> Calculator {
@@ -58,8 +58,8 @@ fn add_inches_with_fractions_exactly() {
     let c = typed(&[
         KeyEvent::Digit(5),
         KeyEvent::Slash, // start fraction even without whole
-        // Better: enter as mixed via the fraction: use whole 5, then "3/8"
-        // Reset and use a clearer keystroke flow:
+                         // Better: enter as mixed via the fraction: use whole 5, then "3/8"
+                         // Reset and use a clearer keystroke flow:
     ]);
     drop(c);
     let mut c = Calculator::new();
@@ -90,7 +90,8 @@ fn convert_feet_to_meters() {
         KeyEvent::Digit(0),
         KeyEvent::Unit(LengthUnitKey::Feet),
     ]);
-    c.handle(KeyEvent::Convert(LengthFormat::Meters { precision: 4 })).unwrap();
+    c.handle(KeyEvent::Convert(LengthFormat::Meters { precision: 4 }))
+        .unwrap();
     // 10 ft = 120 in = 120 / (5000/127) m = 120 * 127/5000 = 15240/5000 = 3.048 m
     assert_eq!(c.display_string(), "3.048 m");
 }
@@ -117,7 +118,11 @@ fn rafter_pitch_and_run_solve() {
     let d = c.display_string();
     // 5' rise, 10' run -> hypotenuse = sqrt(25+100)= sqrt(125) ft = 11.180' ≈ 11' 2-3/16"
     // We rounded to 1/64", then display at 1/16" default.
-    assert!(d.starts_with("11' "), "diag should start with 11' but got {}", d);
+    assert!(
+        d.starts_with("11' "),
+        "diag should start with 11' but got {}",
+        d
+    );
 }
 
 #[test]
@@ -181,6 +186,116 @@ fn square_of_seven() {
     let mut c = typed(&[KeyEvent::Digit(7)]);
     c.handle(KeyEvent::Function(FunctionKey::Square)).unwrap();
     assert_eq!(c.display, Value::Scalar(Rational64::from_integer(49)));
+}
+
+#[test]
+fn single_slash_entry_is_a_fraction() {
+    // Help text claims `3 / 8` produces 3/8. Previously the buffer dropped
+    // the numerator and committed `3`. This guards against that regression.
+    let mut c = Calculator::new();
+    c.handle(KeyEvent::Digit(3)).unwrap();
+    c.handle(KeyEvent::Slash).unwrap();
+    c.handle(KeyEvent::Digit(8)).unwrap();
+    c.handle(KeyEvent::Unit(LengthUnitKey::Inch)).unwrap();
+    c.handle(KeyEvent::Equals).unwrap();
+    assert_eq!(c.display_string(), "3/8\"");
+}
+
+#[test]
+fn single_slash_in_op_is_a_fraction() {
+    // 1/2 + 1/4 should be 3/4, not 1 + 1 = 2 (which would happen if the
+    // numerator was silently dropped on Op commit).
+    let mut c = Calculator::new();
+    c.handle(KeyEvent::Digit(1)).unwrap();
+    c.handle(KeyEvent::Slash).unwrap();
+    c.handle(KeyEvent::Digit(2)).unwrap();
+    c.handle(KeyEvent::Op(BinaryOp::Add)).unwrap();
+    c.handle(KeyEvent::Digit(1)).unwrap();
+    c.handle(KeyEvent::Slash).unwrap();
+    c.handle(KeyEvent::Digit(4)).unwrap();
+    c.handle(KeyEvent::Equals).unwrap();
+    assert_eq!(c.display, Value::Scalar(Rational64::new(3, 4)));
+}
+
+#[test]
+fn double_slash_entry_is_a_mixed_number() {
+    // `5 / 3 / 8` → 5 + 3/8 = 5-3/8".
+    let mut c = Calculator::new();
+    c.handle(KeyEvent::Digit(5)).unwrap();
+    c.handle(KeyEvent::Slash).unwrap();
+    c.handle(KeyEvent::Digit(3)).unwrap();
+    c.handle(KeyEvent::Slash).unwrap();
+    c.handle(KeyEvent::Digit(8)).unwrap();
+    c.handle(KeyEvent::Unit(LengthUnitKey::Inch)).unwrap();
+    c.handle(KeyEvent::Equals).unwrap();
+    assert_eq!(c.display_string(), "5-3/8\"");
+}
+
+#[test]
+fn memory_slot_out_of_range_errors() {
+    use calc_core::calculator::MemoryOp;
+    let mut c = typed(&[KeyEvent::Digit(1)]);
+    let err = c.handle(KeyEvent::Memory(MemoryOp::Store(99))).unwrap_err();
+    match err {
+        calc_core::CalcError::Invalid(_) => (),
+        other => panic!("expected Invalid, got {other:?}"),
+    }
+    // Calculator state should be otherwise undisturbed.
+    assert_eq!(c.display, Value::Scalar(Rational64::from_integer(1)));
+}
+
+#[test]
+fn tan_near_ninety_degrees_errors_cleanly() {
+    // tan(90°) is +inf in f64. The old `as i64` cast saturated to i64::MAX
+    // and produced silent garbage; this should now surface as a Domain
+    // error rather than corrupt the display.
+    let mut c = typed(&[KeyEvent::Digit(9), KeyEvent::Digit(0)]);
+    let err = c.handle(KeyEvent::Function(FunctionKey::Tan)).unwrap_err();
+    match err {
+        calc_core::CalcError::Domain(_) => (),
+        other => panic!("expected Domain, got {other:?}"),
+    }
+}
+
+#[test]
+fn compound_miter_corner_echoes_input() {
+    // Pressing `Corner` after typing 90 should display 90°, not auto-solve
+    // to a miter angle.
+    let mut c = typed(&[KeyEvent::Digit(9), KeyEvent::Digit(0)]);
+    c.handle(KeyEvent::Function(FunctionKey::Corner)).unwrap();
+    if let Value::Angle(a) = c.display {
+        let deg = *a.degrees().numer() as f64 / *a.degrees().denom() as f64;
+        assert!((deg - 90.0).abs() < 1e-6, "got {deg}");
+    } else {
+        panic!("Corner should display an Angle, got {:?}", c.display);
+    }
+}
+
+#[test]
+fn compound_miter_solves_canonical_crown_cut() {
+    // 90° corner / 38° spring is the canonical crown molding case: should
+    // give miter ~31.62° and bevel ~33.86°.
+    let mut c = Calculator::new();
+    c.handle(KeyEvent::Digit(9)).unwrap();
+    c.handle(KeyEvent::Digit(0)).unwrap();
+    c.handle(KeyEvent::Function(FunctionKey::Corner)).unwrap();
+    c.handle(KeyEvent::Digit(3)).unwrap();
+    c.handle(KeyEvent::Digit(8)).unwrap();
+    c.handle(KeyEvent::Function(FunctionKey::Spring)).unwrap();
+
+    c.handle(KeyEvent::Function(FunctionKey::Miter)).unwrap();
+    let miter_deg = match c.display {
+        Value::Angle(a) => *a.degrees().numer() as f64 / *a.degrees().denom() as f64,
+        v => panic!("expected Angle, got {v:?}"),
+    };
+    assert!((miter_deg - 31.6).abs() < 0.1, "miter was {miter_deg}");
+
+    c.handle(KeyEvent::Function(FunctionKey::Bevel)).unwrap();
+    let bevel_deg = match c.display {
+        Value::Angle(a) => *a.degrees().numer() as f64 / *a.degrees().denom() as f64,
+        v => panic!("expected Angle, got {v:?}"),
+    };
+    assert!((bevel_deg - 33.9).abs() < 0.1, "bevel was {bevel_deg}");
 }
 
 #[test]

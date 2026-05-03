@@ -16,9 +16,7 @@
 //!   `clear`, `ce`, `bs` → clear, clear-all, backspace
 //!   `convert <unit>` → change display mode
 
-use calc_core::calculator::{
-    BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey,
-};
+use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey};
 use calc_core::format::LengthFormat;
 use std::io::{self, BufRead, Write};
 
@@ -84,43 +82,79 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
             "*" | "x" => calc.handle(KeyEvent::Op(BinaryOp::Mul)).map_err(s)?,
             "/" => calc.handle(KeyEvent::Op(BinaryOp::Div)).map_err(s)?,
             "=" => calc.handle(KeyEvent::Equals).map_err(s)?,
-            "ft" | "feet" => calc.handle(KeyEvent::Unit(LengthUnitKey::Feet)).map_err(s)?,
-            "in" | "inch" => calc.handle(KeyEvent::Unit(LengthUnitKey::Inch)).map_err(s)?,
-            "yd" => calc.handle(KeyEvent::Unit(LengthUnitKey::Yards)).map_err(s)?,
-            "mm" => calc.handle(KeyEvent::Unit(LengthUnitKey::Millimeters)).map_err(s)?,
-            "cm" => calc.handle(KeyEvent::Unit(LengthUnitKey::Centimeters)).map_err(s)?,
-            "m" => calc.handle(KeyEvent::Unit(LengthUnitKey::Meters)).map_err(s)?,
-            "pitch" => calc.handle(KeyEvent::Function(FunctionKey::Pitch)).map_err(s)?,
-            "rise" => calc.handle(KeyEvent::Function(FunctionKey::Rise)).map_err(s)?,
-            "run" => calc.handle(KeyEvent::Function(FunctionKey::Run)).map_err(s)?,
-            "diag" | "diagonal" => {
-                calc.handle(KeyEvent::Function(FunctionKey::Diagonal)).map_err(s)?
-            }
-            "hipv" | "hip" => {
-                calc.handle(KeyEvent::Function(FunctionKey::HipValley)).map_err(s)?
-            }
-            "jack" => calc.handle(KeyEvent::Function(FunctionKey::Jack)).map_err(s)?,
-            "sin" => calc.handle(KeyEvent::Function(FunctionKey::Sin)).map_err(s)?,
-            "cos" => calc.handle(KeyEvent::Function(FunctionKey::Cos)).map_err(s)?,
-            "tan" => calc.handle(KeyEvent::Function(FunctionKey::Tan)).map_err(s)?,
-            "asin" => calc.handle(KeyEvent::Function(FunctionKey::Asin)).map_err(s)?,
-            "acos" => calc.handle(KeyEvent::Function(FunctionKey::Acos)).map_err(s)?,
-            "atan" => calc.handle(KeyEvent::Function(FunctionKey::Atan)).map_err(s)?,
-            "sqrt" => calc.handle(KeyEvent::Function(FunctionKey::Sqrt)).map_err(s)?,
-            "sq" | "square" => {
-                calc.handle(KeyEvent::Function(FunctionKey::Square)).map_err(s)?
-            }
-            "recip" | "1/x" => {
-                calc.handle(KeyEvent::Function(FunctionKey::Reciprocal)).map_err(s)?
-            }
-            "%" | "pct" => {
-                calc.handle(KeyEvent::Function(FunctionKey::Percent)).map_err(s)?
-            }
+            "ft" | "feet" => calc
+                .handle(KeyEvent::Unit(LengthUnitKey::Feet))
+                .map_err(s)?,
+            "in" | "inch" => calc
+                .handle(KeyEvent::Unit(LengthUnitKey::Inch))
+                .map_err(s)?,
+            "yd" => calc
+                .handle(KeyEvent::Unit(LengthUnitKey::Yards))
+                .map_err(s)?,
+            "mm" => calc
+                .handle(KeyEvent::Unit(LengthUnitKey::Millimeters))
+                .map_err(s)?,
+            "cm" => calc
+                .handle(KeyEvent::Unit(LengthUnitKey::Centimeters))
+                .map_err(s)?,
+            "m" => calc
+                .handle(KeyEvent::Unit(LengthUnitKey::Meters))
+                .map_err(s)?,
+            "pitch" => calc
+                .handle(KeyEvent::Function(FunctionKey::Pitch))
+                .map_err(s)?,
+            "rise" => calc
+                .handle(KeyEvent::Function(FunctionKey::Rise))
+                .map_err(s)?,
+            "run" => calc
+                .handle(KeyEvent::Function(FunctionKey::Run))
+                .map_err(s)?,
+            "diag" | "diagonal" => calc
+                .handle(KeyEvent::Function(FunctionKey::Diagonal))
+                .map_err(s)?,
+            "hipv" | "hip" => calc
+                .handle(KeyEvent::Function(FunctionKey::HipValley))
+                .map_err(s)?,
+            "jack" => calc
+                .handle(KeyEvent::Function(FunctionKey::Jack))
+                .map_err(s)?,
+            "sin" => calc
+                .handle(KeyEvent::Function(FunctionKey::Sin))
+                .map_err(s)?,
+            "cos" => calc
+                .handle(KeyEvent::Function(FunctionKey::Cos))
+                .map_err(s)?,
+            "tan" => calc
+                .handle(KeyEvent::Function(FunctionKey::Tan))
+                .map_err(s)?,
+            "asin" => calc
+                .handle(KeyEvent::Function(FunctionKey::Asin))
+                .map_err(s)?,
+            "acos" => calc
+                .handle(KeyEvent::Function(FunctionKey::Acos))
+                .map_err(s)?,
+            "atan" => calc
+                .handle(KeyEvent::Function(FunctionKey::Atan))
+                .map_err(s)?,
+            "sqrt" => calc
+                .handle(KeyEvent::Function(FunctionKey::Sqrt))
+                .map_err(s)?,
+            "sq" | "square" => calc
+                .handle(KeyEvent::Function(FunctionKey::Square))
+                .map_err(s)?,
+            "recip" | "1/x" => calc
+                .handle(KeyEvent::Function(FunctionKey::Reciprocal))
+                .map_err(s)?,
+            "%" | "pct" => calc
+                .handle(KeyEvent::Function(FunctionKey::Percent))
+                .map_err(s)?,
             "clear" | "ce" => calc.handle(KeyEvent::Clear).map_err(s)?,
             "clearall" | "ac" => calc.handle(KeyEvent::ClearAll).map_err(s)?,
             "bs" => calc.handle(KeyEvent::Backspace).map_err(s)?,
             "convert" => {
-                let target = tokens.next().ok_or_else(|| "convert needs unit".to_string())?;
+                let target = tokens
+                    .next()
+                    .ok_or_else(|| "convert needs unit".to_string())?;
                 let fmt = match target {
                     "feet" | "fif" => LengthFormat::FeetInchFraction { denom: 16 },
                     "inch" => LengthFormat::DecimalInches { precision: 4 },
@@ -147,7 +181,9 @@ fn s<E: std::fmt::Display>(e: E) -> String {
 fn type_number(calc: &mut Calculator, tok: &str) -> Result<(), String> {
     for ch in tok.chars() {
         match ch {
-            '0'..='9' => calc.handle(KeyEvent::Digit(ch.to_digit(10).unwrap() as u8)).map_err(s)?,
+            '0'..='9' => calc
+                .handle(KeyEvent::Digit(ch.to_digit(10).unwrap() as u8))
+                .map_err(s)?,
             '.' => calc.handle(KeyEvent::Decimal).map_err(s)?,
             '/' => calc.handle(KeyEvent::Slash).map_err(s)?,
             '-' => {

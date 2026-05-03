@@ -191,34 +191,57 @@ impl EntryBuffer {
     }
 
     fn current_rational(&self) -> Result<Rational64, CalcError> {
-        let mut r = if self.whole.is_empty() {
-            Rational64::zero()
-        } else {
-            crate::length::parse::parse_decimal_or_fraction(&self.whole)
-                .map_err(CalcError::Parse)?
+        // Buffer states the user can produce by typing digits + slashes:
+        //   `3`           → whole="3"                      → 3
+        //   `3 /`         → whole="3", num=Some("")        → 3 (mid-typing, slash not yet meaningful)
+        //   `3 / 8`       → whole="3", num=Some("8")       → 3/8 (single-slash → fraction)
+        //   `3 / 8 /`     → whole="3", num="8", den=Some("")
+        //   `3 / 1 / 2`   → whole="3", num="1", den="2"    → 3 + 1/2 (mixed)
+        //   `/ 5`         → whole="",  num=Some("5")       → 5 (leading slash treated as a no-op)
+        let parse_whole = |w: &str| -> Result<Rational64, CalcError> {
+            if w.is_empty() {
+                Ok(Rational64::zero())
+            } else {
+                crate::length::parse::parse_decimal_or_fraction(w).map_err(CalcError::Parse)
+            }
         };
-        if let (Some(num), Some(den)) = (&self.numerator, &self.denominator) {
-            if num.is_empty() || den.is_empty() {
-                return Err(CalcError::Invalid("incomplete fraction".into()));
+        let parse_int = |label: &str, s: &str| -> Result<i64, CalcError> {
+            s.parse()
+                .map_err(|_| CalcError::Invalid(format!("bad {} '{}'", label, s)))
+        };
+
+        let mut r = match (&self.numerator, &self.denominator) {
+            (Some(num), Some(den)) => {
+                if num.is_empty() || den.is_empty() {
+                    return Err(CalcError::Invalid("incomplete fraction".into()));
+                }
+                let whole_part = parse_whole(&self.whole)?;
+                let n = parse_int("numerator", num)?;
+                let d = parse_int("denominator", den)?;
+                if d == 0 {
+                    return Err(CalcError::DivByZero);
+                }
+                whole_part + Rational64::new(n, d)
             }
-            let n: i64 = num
-                .parse()
-                .map_err(|_| CalcError::Invalid(format!("bad numerator '{}'", num)))?;
-            let d: i64 = den
-                .parse()
-                .map_err(|_| CalcError::Invalid(format!("bad denominator '{}'", den)))?;
-            if d == 0 {
-                return Err(CalcError::DivByZero);
+            (Some(num), None) => {
+                if num.is_empty() {
+                    // Slash typed but no denominator digits yet — show the whole portion only.
+                    parse_whole(&self.whole)?
+                } else if self.whole.is_empty() {
+                    // Leading-slash entry: treat the typed value as a plain integer.
+                    Rational64::from_integer(parse_int("numerator", num)?)
+                } else {
+                    // Single-slash entry like `3 / 8` → 3/8 (whole was the numerator).
+                    let n = parse_int("numerator", &self.whole)?;
+                    let d = parse_int("denominator", num)?;
+                    if d == 0 {
+                        return Err(CalcError::DivByZero);
+                    }
+                    Rational64::new(n, d)
+                }
             }
-            r += Rational64::new(n, d);
-        } else if let Some(num) = &self.numerator {
-            if !num.is_empty() && self.whole.is_empty() {
-                let n: i64 = num
-                    .parse()
-                    .map_err(|_| CalcError::Invalid(format!("bad numerator '{}'", num)))?;
-                r = Rational64::from_integer(n);
-            }
-        }
+            (None, _) => parse_whole(&self.whole)?,
+        };
         if self.negative {
             r = -r;
         }
@@ -328,13 +351,13 @@ impl Calculator {
             self.entry.current_rational()?
         };
         let added = match u {
-            LengthUnitKey::Feet => Length::from_inches(
-                n * Rational64::from_integer(crate::length::consts::IN_PER_FT),
-            ),
+            LengthUnitKey::Feet => {
+                Length::from_inches(n * Rational64::from_integer(crate::length::consts::IN_PER_FT))
+            }
             LengthUnitKey::Inch => Length::from_inches(n),
-            LengthUnitKey::Yards => Length::from_inches(
-                n * Rational64::from_integer(crate::length::consts::IN_PER_YD),
-            ),
+            LengthUnitKey::Yards => {
+                Length::from_inches(n * Rational64::from_integer(crate::length::consts::IN_PER_YD))
+            }
             LengthUnitKey::Millimeters => Length::from_mm(n),
             LengthUnitKey::Centimeters => Length::from_cm(n),
             LengthUnitKey::Meters => Length::from_m(n),
@@ -429,7 +452,7 @@ impl Calculator {
                     FunctionKey::Tan => crate::operations::trig::tan(angle),
                     _ => unreachable!(),
                 };
-                self.display = Value::Scalar(rational_from_f64(v));
+                self.display = Value::Scalar(rational_from_f64(v)?);
             }
 
             // -- Inverse trig --
@@ -467,16 +490,25 @@ impl Calculator {
             }
 
             // -- Compound miter family --
-            FunctionKey::Corner | FunctionKey::Spring | FunctionKey::Miter | FunctionKey::Bevel => {
-                if matches!(f, FunctionKey::Corner) {
-                    self.compound_miter
-                        .set_field(MiterField::Corner, current)?;
-                } else if matches!(f, FunctionKey::Spring) {
-                    self.compound_miter
-                        .set_field(MiterField::Spring, current)?;
+            //
+            // Input keys (Corner, Spring) store the field and echo the entered
+            // value back to the display so the user sees their input was
+            // accepted. Output keys (Miter, Bevel) compute and display the
+            // requested component, but only when both inputs are present.
+            FunctionKey::Corner => {
+                self.compound_miter.set_field(MiterField::Corner, current)?;
+                if let Some(stored) = self.compound_miter.corner {
+                    self.display = Value::Angle(stored);
                 }
+            }
+            FunctionKey::Spring => {
+                self.compound_miter.set_field(MiterField::Spring, current)?;
+                if let Some(stored) = self.compound_miter.spring {
+                    self.display = Value::Angle(stored);
+                }
+            }
+            FunctionKey::Miter | FunctionKey::Bevel => {
                 if let Some(soln) = self.compound_miter.try_solve()? {
-                    // Append a note describing the cut.
                     self.tape.push(TapeEntry::Note(format!(
                         "Compound miter — corner {}, spring {} → miter {}, bevel {}",
                         soln.corner_angle,
@@ -485,11 +517,14 @@ impl Calculator {
                         soln.bevel_angle
                     )));
                     self.display = match f {
-                        FunctionKey::Corner | FunctionKey::Miter => Value::Angle(soln.miter_angle),
-                        FunctionKey::Spring | FunctionKey::Bevel => Value::Angle(soln.bevel_angle),
+                        FunctionKey::Miter => Value::Angle(soln.miter_angle),
+                        FunctionKey::Bevel => Value::Angle(soln.bevel_angle),
                         _ => unreachable!(),
                     };
                 }
+                // If both inputs aren't set yet, leave the display alone — the
+                // user can fill in the missing field and press the result key
+                // again.
             }
         }
         self.entry.reset();
@@ -502,17 +537,29 @@ impl Calculator {
     }
 
     fn handle_memory(&mut self, m: MemoryOp) -> Result<(), CalcError> {
-        match m {
-            MemoryOp::Store(i) => self.memory[i as usize] = self.display,
-            MemoryOp::Recall(i) => self.display = self.memory[i as usize],
-            MemoryOp::AddTo(i) => {
-                let cur = self.memory[i as usize];
-                self.memory[i as usize] = cur.add(self.display)?;
+        let slot = |i: u8| -> Result<usize, CalcError> {
+            let idx = i as usize;
+            if idx >= self.memory.len() {
+                return Err(CalcError::Invalid(format!(
+                    "memory slot {} out of range (have {})",
+                    i,
+                    self.memory.len()
+                )));
             }
-            MemoryOp::Clear(i) => self.memory[i as usize] = Value::zero_scalar(),
+            Ok(idx)
+        };
+        match m {
+            MemoryOp::Store(i) => self.memory[slot(i)?] = self.display,
+            MemoryOp::Recall(i) => self.display = self.memory[slot(i)?],
+            MemoryOp::AddTo(i) => {
+                let idx = slot(i)?;
+                let cur = self.memory[idx];
+                self.memory[idx] = cur.add(self.display)?;
+            }
+            MemoryOp::Clear(i) => self.memory[slot(i)?] = Value::zero_scalar(),
             MemoryOp::ClearAll => {
-                for slot in self.memory.iter_mut() {
-                    *slot = Value::zero_scalar();
+                for s in self.memory.iter_mut() {
+                    *s = Value::zero_scalar();
                 }
             }
         }
@@ -523,14 +570,10 @@ impl Calculator {
         match self.display {
             Value::Scalar(r) => crate::format::rational_to_decimal_string(r, 6),
             Value::Length(l) => crate::format::format_length(&l, self.mode.default_length_format),
-            Value::Area(r) => format!(
-                "{} sq in",
-                crate::format::rational_to_decimal_string(r, 4)
-            ),
-            Value::Volume(r) => format!(
-                "{} cu in",
-                crate::format::rational_to_decimal_string(r, 4)
-            ),
+            Value::Area(r) => format!("{} sq in", crate::format::rational_to_decimal_string(r, 4)),
+            Value::Volume(r) => {
+                format!("{} cu in", crate::format::rational_to_decimal_string(r, 4))
+            }
             Value::Angle(a) => a.to_string(),
         }
     }
@@ -559,9 +602,23 @@ fn rational_to_f64(r: num_rational::Rational64) -> f64 {
     *r.numer() as f64 / *r.denom() as f64
 }
 
-fn rational_from_f64(x: f64) -> num_rational::Rational64 {
-    let n = (x * 1_000_000.0).round() as i64;
-    num_rational::Rational64::new(n, 1_000_000)
+/// Pin an f64 to a rational on a 1/grid grid, refusing non-finite or
+/// out-of-range values rather than truncating to garbage. The old version
+/// used a saturating `as i64` cast, which silently produced i64::MAX from
+/// `tan(90°)` and similar.
+fn rational_from_f64_on_grid(x: f64, grid: i64) -> Result<num_rational::Rational64, CalcError> {
+    if !x.is_finite() {
+        return Err(CalcError::Domain(format!("non-finite result: {x}")));
+    }
+    let scaled = x * grid as f64;
+    if !scaled.is_finite() || scaled.abs() >= i64::MAX as f64 {
+        return Err(CalcError::Domain(format!("result out of range: {x}")));
+    }
+    Ok(num_rational::Rational64::new(scaled.round() as i64, grid))
+}
+
+fn rational_from_f64(x: f64) -> Result<num_rational::Rational64, CalcError> {
+    rational_from_f64_on_grid(x, 1_000_000)
 }
 
 fn sqrt_value(v: Value) -> Result<Value, CalcError> {
@@ -571,16 +628,15 @@ fn sqrt_value(v: Value) -> Result<Value, CalcError> {
             if f < 0.0 {
                 return Err(CalcError::Domain("sqrt of negative".into()));
             }
-            Ok(Value::Scalar(rational_from_f64(f.sqrt())))
+            Ok(Value::Scalar(rational_from_f64(f.sqrt())?))
         }
         Value::Area(r) => {
             let f = rational_to_f64(r);
             if f < 0.0 {
                 return Err(CalcError::Domain("sqrt of negative area".into()));
             }
-            let inches = (f.sqrt() * 64.0).round() as i64;
             Ok(Value::Length(crate::length::Length::from_inches(
-                num_rational::Rational64::new(inches, 64),
+                rational_from_f64_on_grid(f.sqrt(), 64)?,
             )))
         }
         Value::Length(l) => {
@@ -588,7 +644,7 @@ fn sqrt_value(v: Value) -> Result<Value, CalcError> {
             if f < 0.0 {
                 return Err(CalcError::Domain("sqrt of negative".into()));
             }
-            Ok(Value::Scalar(rational_from_f64(f.sqrt())))
+            Ok(Value::Scalar(rational_from_f64(f.sqrt())?))
         }
         _ => Err(CalcError::TypeMismatch),
     }

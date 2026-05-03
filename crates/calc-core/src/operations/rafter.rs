@@ -80,9 +80,7 @@ impl PartialRafter {
         let diagonal = diag;
         let hip_valley = compute_regular_hip_valley(rise, run);
         let jack_difference = match self.on_center {
-            Some(oc) => Length::from_inches(
-                oc.inches() * (diagonal.inches() / run.inches()),
-            ),
+            Some(oc) => Length::from_inches(oc.inches() * (diagonal.inches() / run.inches())),
             None => Length::ZERO,
         };
 
@@ -112,10 +110,8 @@ impl PartialRafter {
         let run = self.run;
         let diag = self.diagonal;
 
-        let count = p.is_some() as u8
-            + rise.is_some() as u8
-            + run.is_some() as u8
-            + diag.is_some() as u8;
+        let count =
+            p.is_some() as u8 + rise.is_some() as u8 + run.is_some() as u8 + diag.is_some() as u8;
         if count < 2 {
             return None;
         }

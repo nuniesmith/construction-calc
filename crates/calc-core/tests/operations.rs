@@ -1,6 +1,6 @@
+use calc_core::Length;
 use calc_core::angle::Angle;
 use calc_core::operations::{circle, materials, polygon, trig};
-use calc_core::Length;
 use num_rational::Rational64;
 
 // -------------------------- Trig --------------------------
@@ -44,19 +44,29 @@ fn asin_out_of_range_errors() {
 #[test]
 fn equilateral_triangle_from_side() {
     // 12" sides → perimeter 36", apothem ≈ 3.464", interior 60°
-    let s = polygon::solve(3, polygon::PolygonInput::Side, Length::from_inches(Rational64::from_integer(12))).unwrap();
+    let s = polygon::solve(
+        3,
+        polygon::PolygonInput::Side,
+        Length::from_inches(Rational64::from_integer(12)),
+    )
+    .unwrap();
     assert_eq!(s.sides, 3);
     assert_eq!(s.perimeter.inches(), Rational64::from_integer(36));
-    let interior_deg = *s.interior_angle.degrees().numer() as f64
-        / *s.interior_angle.degrees().denom() as f64;
+    let interior_deg =
+        *s.interior_angle.degrees().numer() as f64 / *s.interior_angle.degrees().denom() as f64;
     assert!((interior_deg - 60.0).abs() < 1e-3);
 }
 
 #[test]
 fn square_from_side() {
-    let s = polygon::solve(4, polygon::PolygonInput::Side, Length::from_inches(Rational64::from_integer(10))).unwrap();
-    let interior_deg = *s.interior_angle.degrees().numer() as f64
-        / *s.interior_angle.degrees().denom() as f64;
+    let s = polygon::solve(
+        4,
+        polygon::PolygonInput::Side,
+        Length::from_inches(Rational64::from_integer(10)),
+    )
+    .unwrap();
+    let interior_deg =
+        *s.interior_angle.degrees().numer() as f64 / *s.interior_angle.degrees().denom() as f64;
     assert!((interior_deg - 90.0).abs() < 1e-3);
     // apothem of a 10" square = 5"
     let apo_in = *s.apothem.inches().numer() as f64 / *s.apothem.inches().denom() as f64;
@@ -78,7 +88,11 @@ fn hexagon_from_circumradius() {
 
 #[test]
 fn polygon_rejects_two_sides() {
-    let r = polygon::solve(2, polygon::PolygonInput::Side, Length::from_inches(Rational64::from_integer(1)));
+    let r = polygon::solve(
+        2,
+        polygon::PolygonInput::Side,
+        Length::from_inches(Rational64::from_integer(1)),
+    );
     assert!(r.is_err());
 }
 
@@ -86,8 +100,10 @@ fn polygon_rejects_two_sides() {
 
 #[test]
 fn circle_from_radius() {
-    let s = circle::solve_circle(circle::CircleInput::Radius, Rational64::from_integer(10)).unwrap();
-    let circ_in = *s.circumference.inches().numer() as f64 / *s.circumference.inches().denom() as f64;
+    let s =
+        circle::solve_circle(circle::CircleInput::Radius, Rational64::from_integer(10)).unwrap();
+    let circ_in =
+        *s.circumference.inches().numer() as f64 / *s.circumference.inches().denom() as f64;
     assert!((circ_in - 2.0 * std::f64::consts::PI * 10.0).abs() < 0.05);
     let area_f = *s.area.numer() as f64 / *s.area.denom() as f64;
     assert!((area_f - std::f64::consts::PI * 100.0).abs() < 0.001);
@@ -95,8 +111,10 @@ fn circle_from_radius() {
 
 #[test]
 fn circle_from_diameter_matches_radius() {
-    let from_d = circle::solve_circle(circle::CircleInput::Diameter, Rational64::from_integer(20)).unwrap();
-    let from_r = circle::solve_circle(circle::CircleInput::Radius, Rational64::from_integer(10)).unwrap();
+    let from_d =
+        circle::solve_circle(circle::CircleInput::Diameter, Rational64::from_integer(20)).unwrap();
+    let from_r =
+        circle::solve_circle(circle::CircleInput::Radius, Rational64::from_integer(10)).unwrap();
     assert_eq!(from_d.radius, from_r.radius);
 }
 
@@ -109,13 +127,16 @@ fn arc_quarter_circle() {
     let arc_in = *s.arc_length.inches().numer() as f64 / *s.arc_length.inches().denom() as f64;
     assert!((arc_in - std::f64::consts::FRAC_PI_2 * 10.0).abs() < 0.05);
     // chord for 90° arc r=10 = 10√2 ≈ 14.142"
-    let chord_in = *s.chord_length.inches().numer() as f64 / *s.chord_length.inches().denom() as f64;
+    let chord_in =
+        *s.chord_length.inches().numer() as f64 / *s.chord_length.inches().denom() as f64;
     assert!((chord_in - 10.0 * 2f64.sqrt()).abs() < 0.05);
 }
 
 #[test]
 fn circle_zero_input_errors() {
-    assert!(circle::solve_circle(circle::CircleInput::Radius, Rational64::from_integer(0)).is_err());
+    assert!(
+        circle::solve_circle(circle::CircleInput::Radius, Rational64::from_integer(0)).is_err()
+    );
 }
 
 // -------------------------- Materials --------------------------
@@ -139,7 +160,8 @@ fn drywall_with_ten_percent_waste() {
 
     // Bigger wall: 200 sq ft → 200/32 = 6.25 → with 10% = 6.875 → ceil = 7
     let area_big = Rational64::from_integer(200 * 144);
-    let n2 = materials::sheets_for_area(area_big, materials::SheetSize::drywall_4x8(), 0.10).unwrap();
+    let n2 =
+        materials::sheets_for_area(area_big, materials::SheetSize::drywall_4x8(), 0.10).unwrap();
     assert_eq!(n2, 7);
 }
 
