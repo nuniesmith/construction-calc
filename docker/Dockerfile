@@ -6,7 +6,7 @@
 # IMPORTANT: keep this >= 1.85. The workspace declares `edition = "2024"`,
 # which only stabilized in Rust 1.85. Older toolchains will fail with
 # `feature edition2024 is required`. Bump in lockstep with rust-toolchain.toml.
-ARG RUST_VERSION=1.86
+ARG RUST_VERSION=1.94.1
 FROM rust:${RUST_VERSION}-bookworm AS wasm-builder
 
 ENV CARGO_TERM_COLOR=always \
