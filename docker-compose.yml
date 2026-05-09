@@ -1,6 +1,13 @@
-# Production compose. Bind to loopback only — external access is
-# expected to come via Tailscale, matching the FKS infrastructure
-# convention. Change the host port if 8080 collides on Sullivan/Freddy.
+# Production compose. Bind to a single interface — by default loopback,
+# but on Tailnet hosts (Sullivan/Freddy/desktop) set HOST_BIND to the
+# machine's Tailscale IP in a local .env so it's reachable as
+# `<machine>:<port>` from other tailnet peers and nothing else.
+#
+#   HOST_BIND  -- interface address to listen on (default 127.0.0.1)
+#   HOST_PORT  -- host port to publish        (default 8099; 8080 often
+#                 collides with qBittorrent / other dev services)
+#
+# See .env.example for the recommended layout.
 
 services:
   web:
@@ -11,7 +18,7 @@ services:
     container_name: construction-calc
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8099:80"
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8099}:80"
     healthcheck:
       test:
         - CMD

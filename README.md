@@ -75,12 +75,14 @@ output.
 ```bash
 docker compose build
 docker compose up -d
-# Visit http://localhost:8080
+# Visit http://localhost:8099
 ```
 
-The compose file binds to `127.0.0.1:8080` only — external access is
-expected to come via Tailscale, matching the FKS pattern. Change the
-host port at the top of `docker-compose.yml` if it collides.
+The compose file binds to `127.0.0.1:8099` only — external access is
+expected to come via Tailscale, matching the FKS pattern. (Port 8080
+is intentionally avoided since it commonly collides with qBittorrent /
+other local services.) Change the host port at the top of
+`docker-compose.yml` if it collides.
 
 To rebuild on source changes:
 
