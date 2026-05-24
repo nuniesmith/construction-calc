@@ -40,17 +40,16 @@ fn parses_decimal_inches() {
 }
 
 #[test]
-fn parses_metric_mm() {
-    let l = Length::parse("1500mm").unwrap();
-    // 1500 * 5/127 = 7500/127 inches
-    assert_eq!(l.inches(), Rational64::new(7500, 127));
-}
-
-#[test]
 fn parses_metric_meters() {
     let l = Length::parse("1.5m").unwrap();
     // 1.5 m * 5000/127 in/m = 7500/127
     assert_eq!(l.inches(), Rational64::new(7500, 127));
+}
+
+#[test]
+fn rejects_legacy_mm_suffix() {
+    // mm/cm support was removed; "1500mm" should no longer parse as a length.
+    assert!(Length::parse("1500mm").is_err());
 }
 
 #[test]
@@ -114,19 +113,19 @@ fn formats_decimal_feet() {
 }
 
 #[test]
-fn formats_metric() {
-    let l = Length::from_mm(Rational64::from_integer(1500));
-    let s = format_length(&l, LengthFormat::Millimeters { precision: 0 });
-    assert_eq!(s, "1500 mm");
+fn formats_metric_meters() {
+    let l = Length::from_m(Rational64::new(3, 2));
+    let s = format_length(&l, LengthFormat::Meters { precision: 4 });
+    assert_eq!(s, "1.5 m");
 }
 
 #[test]
 fn round_trip_through_feet_inch_fraction() {
-    // Anything with a denom that's a power of two ≤ 64 should round-trip.
+    // Anything with a denom that's a power of two ≤ 16 should round-trip.
     let cases = ["8' 5-3/8\"", "12-1/16\"", "5'", "0\""];
     for c in &cases {
         let parsed = Length::parse(c).unwrap();
-        let formatted = format_length(&parsed, LengthFormat::FeetInchFraction { denom: 64 });
+        let formatted = format_length(&parsed, LengthFormat::FeetInchFraction { denom: 16 });
         let reparsed = Length::parse(&formatted).unwrap();
         assert_eq!(parsed, reparsed, "round-trip failed for {}", c);
     }

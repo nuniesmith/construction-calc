@@ -135,8 +135,6 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
             "ft" | "feet" => LengthUnitKey::Feet,
             "in" | "inch" => LengthUnitKey::Inch,
             "yd" | "yards" => LengthUnitKey::Yards,
-            "mm" => LengthUnitKey::Millimeters,
-            "cm" => LengthUnitKey::Centimeters,
             "m" => LengthUnitKey::Meters,
             other => return Err(format!("unknown unit {other}")),
         }),
@@ -180,12 +178,6 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
                 },
                 "yards" => LengthFormat::Yards {
                     precision: precision.unwrap_or(4),
-                },
-                "mm" => LengthFormat::Millimeters {
-                    precision: precision.unwrap_or(0),
-                },
-                "cm" => LengthFormat::Centimeters {
-                    precision: precision.unwrap_or(2),
                 },
                 "m" => LengthFormat::Meters {
                     precision: precision.unwrap_or(4),

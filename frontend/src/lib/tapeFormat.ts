@@ -13,7 +13,7 @@ export interface Rat {
 /**
  * Render a Rational64 as a decimal with sensible precision. Uses BigInt for
  * the division so we don't lose precision for the giant denominators that
- * can come out of metric conversions (1mm = 5/127 in, so 100mm = 500/127).
+ * can come out of metric conversions (1 m = 5000/127 in).
  */
 export function rationalApprox(r: Rat | null | undefined, precision = 4): string {
   if (!r) return '?';

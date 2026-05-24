@@ -9,7 +9,7 @@
 //!
 //! Tokens:
 //!   digits like 12 or 0.5 or 3/8 → typed verbatim into the entry buffer
-//!   `ft`, `in`, `yd`, `mm`, `cm`, `m` → unit commit
+//!   `ft`, `in`, `yd`, `m` → unit commit
 //!   `+`, `-`, `*`, `/` → operators
 //!   `=` → equals
 //!   `pitch`, `rise`, `run`, `diag` → rafter functions
@@ -65,11 +65,11 @@ fn print_prompt(_c: &Calculator, out: &mut impl Write) {
 fn print_help() {
     println!("Tokens:");
     println!("  numbers: 12  0.5  3/8  5-1/2");
-    println!("  units:   ft in yd mm cm m");
+    println!("  units:   ft in yd m");
     println!("  ops:     + - * / =");
     println!("  rafter:  pitch rise run diag");
     println!("  state:   clear (= CE), clearall (= AC), bs (backspace)");
-    println!("  display: convert <feet|inch|m|mm|cm|yd>");
+    println!("  display: convert <feet|inch|m|yd>  (feet rounds to 1/4, 1/8, or 1/16)");
     println!("Example: 5 ft 6 in + 2 ft 7 in =");
 }
 
@@ -90,12 +90,6 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                 .map_err(s)?,
             "yd" => calc
                 .handle(KeyEvent::Unit(LengthUnitKey::Yards))
-                .map_err(s)?,
-            "mm" => calc
-                .handle(KeyEvent::Unit(LengthUnitKey::Millimeters))
-                .map_err(s)?,
-            "cm" => calc
-                .handle(KeyEvent::Unit(LengthUnitKey::Centimeters))
                 .map_err(s)?,
             "m" => calc
                 .handle(KeyEvent::Unit(LengthUnitKey::Meters))
@@ -157,10 +151,10 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                     .ok_or_else(|| "convert needs unit".to_string())?;
                 let fmt = match target {
                     "feet" | "fif" => LengthFormat::FeetInchFraction { denom: 16 },
+                    "feet8" => LengthFormat::FeetInchFraction { denom: 8 },
+                    "feet4" => LengthFormat::FeetInchFraction { denom: 4 },
                     "inch" => LengthFormat::DecimalInches { precision: 4 },
                     "m" => LengthFormat::Meters { precision: 4 },
-                    "mm" => LengthFormat::Millimeters { precision: 0 },
-                    "cm" => LengthFormat::Centimeters { precision: 2 },
                     "yd" => LengthFormat::Yards { precision: 4 },
                     other => return Err(format!("unknown convert target {other}")),
                 };

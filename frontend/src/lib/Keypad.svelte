@@ -57,9 +57,12 @@
     { label: 'Yds', helpId: 'yd', key: { type: 'unit', unit: 'yd' }, style: 'unit' },
     { label: 'Feet', helpId: 'ft', key: { type: 'unit', unit: 'ft' }, style: 'unit' },
     { label: 'Inch', helpId: 'in', key: { type: 'unit', unit: 'in' }, style: 'unit' },
-    { label: 'mm', helpId: 'mm', key: { type: 'unit', unit: 'mm' }, style: 'unit' },
-    { label: 'cm', helpId: 'cm', key: { type: 'unit', unit: 'cm' }, style: 'unit' },
     { label: 'm', helpId: 'm', key: { type: 'unit', unit: 'm' }, style: 'unit' },
+    // Two filler cells to keep the 6-wide grid aligned after mm/cm were
+    // removed. Use the format strip above the display to pick m / yd /
+    // decimal feet / fraction resolution.
+    { label: '', style: 'unit', span: 1 },
+    { label: '', style: 'unit', span: 1 },
 
     { label: 'C', helpId: 'c', key: { type: 'clear' }, style: 'ctrl' },
     { label: 'AC', helpId: 'ac', key: { type: 'clearAll' }, style: 'ctrl' },
