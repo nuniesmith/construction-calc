@@ -98,22 +98,36 @@ pub enum LengthFormat {
 
 #[derive(uniffi::Enum, Clone, Debug)]
 pub enum KeyEvent {
-    Digit { value: u8 },
+    Digit {
+        value: u8,
+    },
     Decimal,
     Slash,
     Negate,
-    Op { op: Op },
+    Op {
+        op: Op,
+    },
     Equals,
-    Unit { unit: Unit },
-    Function { function: FunctionKey },
-    Convert { format: LengthFormat },
-    Memory { op: MemoryOp },
+    Unit {
+        unit: Unit,
+    },
+    Function {
+        function: FunctionKey,
+    },
+    Convert {
+        format: LengthFormat,
+    },
+    Memory {
+        op: MemoryOp,
+    },
     Backspace,
     Clear,
     ClearAll,
     /// Append a free-form labelled note to the tape without other state
     /// change. Used by the EZ Calc forms layer.
-    Note { text: String },
+    Note {
+        text: String,
+    },
 }
 
 #[derive(uniffi::Record, Clone, Debug)]
