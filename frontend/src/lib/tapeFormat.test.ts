@@ -92,7 +92,10 @@ describe('rationalLength', () => {
   });
 
   it('rounds half values correctly (1/32 rounds up to 1/16)', () => {
-    // 1/32" = 0.03125", at 1/16" precision rounds up to 1/16
+    // 1/32" = 0.03125", at 1/16" precision rounds up to 1/16. The
+    // tape-side renderer always renders at 1/16 — coarser display
+    // resolutions (1/4, 1/8) are applied via the format strip and only
+    // affect the main display, not the tape.
     expect(rationalLength({ numer: 1, denom: 32 }).text).toBe('1/16"');
   });
 
@@ -106,10 +109,10 @@ describe('rationalLength', () => {
   });
 
   it('survives large numerators that overflow Number', () => {
-    // 5/127 in = 1mm. A long chain of metric conversions can build up
+    // 1 m = 5000/127 in. A long chain of meter conversions can build up
     // arbitrarily large numerators; using BigInt internally must keep
     // the rendering accurate.
-    // 1000mm = 5000/127 in ≈ 39.37" = 3' 3-3/8"
+    // 1 m = 5000/127 in ≈ 39.37" = 3' 3-3/8"
     const r = rationalLength({ numer: '5000', denom: '127' });
     // Should render close to 3' 3-3/8" (rounded to 1/16")
     expect(r.text).toMatch(/^3'/);

@@ -4,6 +4,10 @@
   /**
    * A small strip across the top of the display that lets the user pick
    * how lengths render. Maps directly to KeyEvent::Convert on the engine.
+   *
+   * The fraction buttons (1/4, 1/8, 1/16) double as rounding controls:
+   * they set the resolution at which sums of whole numbers and fractions
+   * are rendered. The internal value stays exact.
    */
   interface FormatChoice {
     label: string;
@@ -11,18 +15,17 @@
   }
 
   const choices: FormatChoice[] = [
+    { label: '1/4"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 4 } },
+    { label: '1/8"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 8 } },
     { label: '1/16"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 16 } },
-    { label: '1/32"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 32 } },
-    { label: '1/64"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 64 } },
     { label: 'dec ft', key: { type: 'convert', format: 'decimal_feet', precision: 4 } },
     { label: 'dec in', key: { type: 'convert', format: 'decimal_inches', precision: 4 } },
-    { label: 'mm', key: { type: 'convert', format: 'mm', precision: 0 } },
-    { label: 'cm', key: { type: 'convert', format: 'cm', precision: 2 } },
     { label: 'm', key: { type: 'convert', format: 'm', precision: 4 } },
     { label: 'yd', key: { type: 'convert', format: 'yards', precision: 4 } }
   ];
 
-  let active = 0;
+  // Default highlight matches the engine's default Mode (1/16").
+  let active = 2;
   function pick(i: number) {
     active = i;
     calc.send(choices[i].key);

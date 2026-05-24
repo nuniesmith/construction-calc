@@ -30,8 +30,6 @@ pub enum LengthUnitKey {
     Feet,
     Inch,
     Yards,
-    Millimeters,
-    Centimeters,
     Meters,
 }
 
@@ -366,8 +364,6 @@ impl Calculator {
             LengthUnitKey::Yards => {
                 Length::from_inches(n * Rational64::from_integer(crate::length::consts::IN_PER_YD))
             }
-            LengthUnitKey::Millimeters => Length::from_mm(n),
-            LengthUnitKey::Centimeters => Length::from_cm(n),
             LengthUnitKey::Meters => Length::from_m(n),
         };
         let total = self.entry.accumulated.unwrap_or(Length::ZERO) + added;

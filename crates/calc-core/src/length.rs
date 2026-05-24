@@ -7,11 +7,10 @@
 //!
 //! ## Why inches?
 //!
-//! Either inches or millimeters work as the canonical unit; inches were
-//! chosen because the most common framing dimensions and preset fractions
-//! (1/2", 1/4", ..., 1/64") yield small denominators. A cleaner millimeter
-//! result like `1mm` is `Rational64::new(1, 254) * 10` in inches — still
-//! exact, just slightly larger numerators.
+//! Either inches or meters could be canonical; inches were chosen because
+//! the most common framing dimensions and preset fractions (1/2", 1/4",
+//! 1/8", 1/16") yield small denominators. Meter values are stored as
+//! `Rational64::new(5000, 127) * m` — still exact, just larger numerators.
 
 use core::fmt;
 use core::ops::{Add, Div, Mul, Neg, Sub};
@@ -31,14 +30,7 @@ pub mod consts {
     /// Inches per yard.
     pub const IN_PER_YD: i64 = 36;
 
-    /// Inches per millimeter: 1 inch = 25.4 mm exactly,
-    /// so 1 mm = 10/254 in = 5/127 in.
-    pub fn in_per_mm() -> Rational64 {
-        Rational64::new(5, 127)
-    }
-    pub fn in_per_cm() -> Rational64 {
-        Rational64::new(50, 127)
-    }
+    /// Inches per meter: 1 inch = 25.4 mm exactly, so 1 m = 5000/127 in.
     pub fn in_per_m() -> Rational64 {
         Rational64::new(5000, 127)
     }
@@ -80,18 +72,6 @@ impl Length {
         }
     }
 
-    pub fn from_mm(mm: Rational64) -> Self {
-        Self {
-            inches: mm * consts::in_per_mm(),
-        }
-    }
-
-    pub fn from_cm(cm: Rational64) -> Self {
-        Self {
-            inches: cm * consts::in_per_cm(),
-        }
-    }
-
     pub fn from_m(m: Rational64) -> Self {
         Self {
             inches: m * consts::in_per_m(),
@@ -108,14 +88,6 @@ impl Length {
 
     pub fn yards(&self) -> Rational64 {
         self.inches / Rational64::from_integer(consts::IN_PER_YD)
-    }
-
-    pub fn millimeters(&self) -> Rational64 {
-        self.inches / consts::in_per_mm()
-    }
-
-    pub fn centimeters(&self) -> Rational64 {
-        self.inches / consts::in_per_cm()
     }
 
     pub fn meters(&self) -> Rational64 {
@@ -149,7 +121,7 @@ impl Length {
     }
 
     /// Round the fractional inch portion to the nearest `1/denom`.
-    /// `denom` must be a power of two between 2 and 64.
+    /// `denom` must be a power of two between 2 and 16.
     /// Used when displaying to a preset fraction like 1/16".
     pub fn round_to_fraction(&self, denom: u32) -> Self {
         let d = denom as i64;
@@ -162,7 +134,7 @@ impl Length {
     }
 
     /// Parse a length expression like:
-    /// `8' 5-3/8"`, `5'`, `3 1/2"`, `12.5"`, `2 ft 6 in`, `1500mm`, `1.5m`.
+    /// `8' 5-3/8"`, `5'`, `3 1/2"`, `12.5"`, `2 ft 6 in`, `1.5m`, `2 yd`.
     ///
     /// Tolerant of extra whitespace and unicode quote characters.
     pub fn parse(s: &str) -> Result<Self, ParseError> {

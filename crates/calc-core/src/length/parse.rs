@@ -4,7 +4,7 @@
 //! - `8' 5-3/8"`, `8'5"`, `5'`, `8 ft 5 in`
 //! - `3 1/2"`, `3-1/2"`, `1/2 in`
 //! - `12.5"`, `12.5 in`
-//! - `1500mm`, `150 cm`, `1.5 m`, `1.5m`
+//! - `1.5 m`, `1.5m`
 //! - `2 yd`, `2yd`
 //! - bare numbers are interpreted as inches.
 
@@ -34,14 +34,6 @@ pub fn parse_length(input: &str) -> Result<Length, ParseError> {
     // Pull out an explicit metric/yard suffix first; those modes are
     // unambiguous and easier to handle separately.
     let lower = normalized.to_ascii_lowercase();
-    if let Some(stripped) = strip_suffix_word(&lower, &["mm", "millimeters", "millimetres"]) {
-        let n = parse_decimal_or_fraction(stripped.trim())?;
-        return Ok(Length::from_mm(n));
-    }
-    if let Some(stripped) = strip_suffix_word(&lower, &["cm", "centimeters", "centimetres"]) {
-        let n = parse_decimal_or_fraction(stripped.trim())?;
-        return Ok(Length::from_cm(n));
-    }
     if let Some(stripped) = strip_suffix_word(&lower, &["m", "meters", "metres"]) {
         let n = parse_decimal_or_fraction(stripped.trim())?;
         return Ok(Length::from_m(n));
@@ -63,8 +55,9 @@ pub fn parse_length(input: &str) -> Result<Length, ParseError> {
 fn strip_suffix_word<'a>(lower: &'a str, words: &[&str]) -> Option<&'a str> {
     for w in words {
         if let Some(prefix) = lower.strip_suffix(w) {
-            // Avoid 'm' matching 'cm'/'mm' tail: require prefix to end with
-            // digit or whitespace (not another letter).
+            // Don't match a suffix that's actually part of a longer word
+            // (e.g. "m" tail of a typo'd "mm"). Require prefix to end with
+            // a digit or whitespace, not another letter.
             let last = prefix.chars().last();
             match last {
                 Some(c) if c.is_alphabetic() => continue,

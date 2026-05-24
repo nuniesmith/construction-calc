@@ -14,7 +14,7 @@
  *   F              → Feet
  *   I              → Inch
  *   Y              → Yards
- *   M              → Meters (single-press) — mm/cm need menu since `M` is taken
+ *   M              → Meters
  *
  * Returns a teardown to call on cleanup.
  */

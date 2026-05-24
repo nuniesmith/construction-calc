@@ -99,7 +99,7 @@ tmpfs mounts so the read-only rootfs doesn't break it.
 ## Roadmap
 
 - [x] Exact `Length` arithmetic
-- [x] Format: feet-inch-fraction, decimal feet, decimal inches, metric
+- [x] Format: feet-inch-fraction, decimal feet, decimal inches, meters, yards
 - [x] Calculator state machine: digits, ops, units, equals, memory
 - [x] Right-angle/rafter solver (any 2 of pitch/rise/run/diagonal)
 - [x] Stair layout solver
@@ -112,15 +112,11 @@ tmpfs mounts so the read-only rootfs doesn't break it.
 - [x] WASM bindings + Svelte UI
 - [x] Long-press context help
 - [x] Tape display
-- [x] Display-format strip (1/16, 1/32, 1/64, decimal, metric)
+- [x] Display-format strip (1/4, 1/8, 1/16, decimal, meters, yards)
 - [x] Physical keyboard support
-- [ ] Polygon + circle keys exposed in the keypad UI
-- [ ] EZ Calc forms layer (drywall, baluster, rebar, etc.)
-- [ ] Save/share tape (JSON export)
-- [ ] Compound miter / crown angle
-- [ ] Cost-per-unit and weight-per-volume
-- [ ] UniFFI crate → iOS app
-- [ ] UniFFI crate → Android (Compose Multiplatform)
+
+See [`todo.md`](todo.md) for the full roadmap including the iOS App Store
+release plan.
 
 ## Engine test count
 

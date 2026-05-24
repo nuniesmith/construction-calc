@@ -75,9 +75,7 @@ export const HELP: Record<string, HelpEntry> = {
   ft: { title: 'Feet', body: 'Tag the typed number as feet. Press multiple unit keys to build a compound length like 5 ft 6 in.' },
   in: { title: 'Inch', body: 'Tag the typed number as inches. Use the / key to enter a fraction like 3 / 8 [Inch].' },
   yd: { title: 'Yards', body: 'Tag the typed number as yards.' },
-  mm: { title: 'Millimeters', body: 'Tag the typed number as millimeters.' },
-  cm: { title: 'Centimeters', body: 'Tag the typed number as centimeters.' },
-  m: { title: 'Meters', body: 'Tag the typed number as meters.' },
+  m: { title: 'Meters', body: 'Tag the typed number as meters. Use the format strip above the display to render results in m.' },
   slash: {
     title: 'Fraction divider',
     body: 'Use during entry to type a fraction. After typing 3 / 8, you have 3/8. After 5, /, 3, /, 8, you have 5-3/8.'

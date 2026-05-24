@@ -11,7 +11,7 @@
 import { writable, type Writable } from 'svelte/store';
 
 export type Op = 'add' | 'sub' | 'mul' | 'div';
-export type Unit = 'ft' | 'in' | 'yd' | 'mm' | 'cm' | 'm';
+export type Unit = 'ft' | 'in' | 'yd' | 'm';
 export type FunctionKey =
   // Rafter family
   | 'pitch' | 'rise' | 'run' | 'diag' | 'hipv' | 'jack'

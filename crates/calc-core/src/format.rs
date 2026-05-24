@@ -15,7 +15,8 @@ use crate::length::Length;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum LengthFormat {
-    /// e.g. `8' 5-3/8"`. `denom` must be a power of two from 2 to 64.
+    /// e.g. `8' 5-3/8"`. `denom` is the rounding resolution and must be a
+    /// power of two from 2 to 16 (1/2", 1/4", 1/8", 1/16").
     FeetInchFraction {
         denom: u32,
     },
@@ -28,12 +29,6 @@ pub enum LengthFormat {
         precision: u8,
     },
     Yards {
-        precision: u8,
-    },
-    Millimeters {
-        precision: u8,
-    },
-    Centimeters {
         precision: u8,
     },
     Meters {
@@ -57,7 +52,7 @@ impl LengthFormat {
         };
         match self {
             LengthFormat::FeetInchFraction { denom } => {
-                if !matches!(denom, 2 | 4 | 8 | 16 | 32 | 64) {
+                if !matches!(denom, 2 | 4 | 8 | 16) {
                     return Err(ParseError::InvalidDenominator(denom));
                 }
                 Ok(self)
@@ -65,8 +60,6 @@ impl LengthFormat {
             LengthFormat::DecimalFeet { precision }
             | LengthFormat::DecimalInches { precision }
             | LengthFormat::Yards { precision }
-            | LengthFormat::Millimeters { precision }
-            | LengthFormat::Centimeters { precision }
             | LengthFormat::Meters { precision } => {
                 check_precision(precision)?;
                 Ok(self)
@@ -86,12 +79,6 @@ pub fn format_length(length: &Length, fmt: LengthFormat) -> String {
         }
         LengthFormat::Yards { precision } => {
             format_rational_with_unit(length.yards(), precision, " yd")
-        }
-        LengthFormat::Millimeters { precision } => {
-            format_rational_with_unit(length.millimeters(), precision, " mm")
-        }
-        LengthFormat::Centimeters { precision } => {
-            format_rational_with_unit(length.centimeters(), precision, " cm")
         }
         LengthFormat::Meters { precision } => {
             format_rational_with_unit(length.meters(), precision, " m")
