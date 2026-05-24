@@ -143,16 +143,21 @@ crates/calc-uniffi (new)   ← UniFFI wrapper, exports Swift bindings
 ios/                       ← Xcode project, SwiftUI app
 ```
 
-- [ ] **Create `crates/calc-uniffi`.** A thin crate that depends on
-      `calc-core` and exposes a UniFFI-friendly API. Key types to
-      export: `Calculator`, `KeyEvent`, `LengthFormat`, `LengthUnitKey`,
-      `Snapshot { display, tape, error }`. Mirror what `calc-wasm` does
-      but using UniFFI's `udl` (or proc-macro) interface.
-- [ ] **Add `cargo-swift` or hand-rolled `xcframework` build script.**
-      Output: `CalcEngine.xcframework` containing arm64 (device) +
-      arm64-sim + x86_64-sim slices. Add a `scripts/build-ios.sh` that
-      runs `cargo build --release --target aarch64-apple-ios` etc and
-      assembles the xcframework.
+- [x] **Create `crates/calc-uniffi`.** Proc-macro mode UniFFI wrapper
+      around `calc-core` exporting `Calculator`, `KeyEvent`,
+      `LengthFormat`, `Unit`, `FunctionKey`, `MemoryOp`, `Snapshot`,
+      `CalcFfiError`. 4 end-to-end tests confirm the wrapper works
+      identically to the WASM version.
+- [x] **Hand-rolled xcframework build script** at `scripts/build-ios.sh`.
+      Builds arm64-device + arm64-sim + x86_64-sim slices, lipos the
+      sim slices, runs `uniffi-bindgen generate --language swift`, and
+      assembles the final `CalcEngine.xcframework`. No external tool
+      dependencies beyond Xcode + Rust. Runs on macOS only — verified
+      bindings generation end-to-end in CI on Linux against the
+      `.so` (Swift output looks correct: `Calculator` class +
+      `handle(event:)` method + all enums).
+- [ ] **Install iOS Rust targets on the build Mac.** One-time setup:
+      `rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios`
 - [ ] **Create the Xcode project** under `ios/ConstructionCalc/`. Use
       SwiftUI. iOS 17+ target is fine (lets you use latest APIs; cuts
       out only ~5% of users at this point).

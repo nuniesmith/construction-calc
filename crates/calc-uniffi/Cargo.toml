@@ -1,0 +1,26 @@
+[package]
+name = "calc-uniffi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "UniFFI bindings for calc-core — generates Swift bindings for the iOS app and Kotlin bindings for the Android app."
+
+[lib]
+name = "calc_uniffi"
+# `staticlib` produces the `.a` archive linked into the iOS xcframework.
+# `cdylib` produces the `.so`/`.dylib` for the Android JNI loader.
+# `lib` (rlib) keeps `cargo test` and rustdoc working.
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+calc-core = { path = "../calc-core" }
+uniffi = { version = "0.28", features = ["cli"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[[bin]]
+# Generates the Swift / Kotlin binding files from this crate's exports.
+# Invoked from scripts/build-ios.sh; see todo.md §3.1.
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"

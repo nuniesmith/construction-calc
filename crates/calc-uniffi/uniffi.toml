@@ -1,0 +1,17 @@
+# UniFFI bindgen configuration.
+#
+# Picked up by `uniffi-bindgen generate --library libcalc_uniffi.<ext>`
+# when emitting Swift / Kotlin source files. The "calc_uniffi" namespace
+# below must match the argument passed to `uniffi::setup_scaffolding!`
+# in src/lib.rs.
+
+[bindings.swift]
+# The generated `CalcEngine.swift` file lives next to the xcframework
+# in the iOS Xcode project. The module name matches the framework so
+# Swift code can `import CalcEngine` to pull in both.
+module_name = "CalcEngine"
+ffi_module_name = "CalcEngineFFI"
+
+[bindings.kotlin]
+# Mirrors the iOS package naming for the eventual Android port.
+package_name = "com.nuniesmith.calcengine"
