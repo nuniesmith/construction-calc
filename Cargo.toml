@@ -4,6 +4,7 @@ members = [
     "crates/calc-core",
     "crates/calc-wasm",
     "crates/calc-cli",
+    "crates/calc-uniffi",
 ]
 
 [workspace.package]
