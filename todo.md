@@ -113,13 +113,18 @@ need a button + help text.
 - [x] Circle (radius, diameter, circumference, area, arc, chord, segment)
 - [x] Polygon (equilateral)
 - [x] Board feet
-- [ ] Drywall estimation (in EZ Calc, expand it)
-- [ ] Concrete volume (slab, footing, column, cone)
-- [ ] Rebar spacing & count
-- [ ] Baluster spacing
-- [ ] Column / cone (volume + lateral area)
-- [ ] Roof: studs, sheathing sheets, plates, roofing bundles
-- [ ] Equal-spacing on-center divider (for studs, joists, etc.)
+- [x] Drywall estimation (in EZ Calc)
+- [x] Concrete volume (slab, column, cone) — engine module +
+      `/ez/concrete` form with cubic-yard output and waste factor
+- [x] Rebar spacing & count — `/ez/rebar` with bar size weight tables
+- [x] Baluster spacing — `/ez/baluster` enforcing IRC 4" sphere code
+- [x] Roof: roofing bundles + footprint × pitch multiplier
+      (`/ez/roofing`), stud count (`/ez/studs`)
+- [ ] Column / cone lateral surface area (currently volume only)
+- [ ] Equal-spacing on-center divider (for joists, picket fences,
+      etc.) — generalized form of baluster
+- [ ] Sheathing sheets, plates, headers — extend `/ez/studs` or
+      add a dedicated framing form
 
 ### UI / UX
 

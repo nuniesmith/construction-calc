@@ -1,6 +1,6 @@
 use calc_core::Length;
 use calc_core::angle::Angle;
-use calc_core::operations::{circle, materials, polygon, trig};
+use calc_core::operations::{circle, concrete, materials, polygon, trig};
 use num_rational::Rational64;
 
 // -------------------------- Trig --------------------------
@@ -185,4 +185,61 @@ fn studs_for_uneven_wall_rounds_up() {
     )
     .unwrap();
     assert_eq!(n, 11);
+}
+
+// -------------------------- Concrete --------------------------
+
+#[test]
+fn slab_volume_is_exact_rational() {
+    // 10' × 10' × 4" slab = 10*12 × 10*12 × 4 = 57_600 cu in = 1.234... cy
+    let v = concrete::slab_volume(
+        Length::from_feet_int(10),
+        Length::from_feet_int(10),
+        Length::from_inches(Rational64::from_integer(4)),
+    )
+    .unwrap();
+    assert_eq!(v, Rational64::from_integer(57_600));
+    // 57_600 / 46_656 ≈ 1.2345679
+    let cy = concrete::cubic_inches_to_cubic_yards(v);
+    assert!((cy - 1.234_567_9).abs() < 1e-6);
+}
+
+#[test]
+fn slab_volume_rejects_zero_thickness() {
+    let r = concrete::slab_volume(
+        Length::from_feet_int(10),
+        Length::from_feet_int(10),
+        Length::ZERO,
+    );
+    assert!(r.is_err());
+}
+
+#[test]
+fn column_volume_matches_cylinder_formula() {
+    // 12" diameter × 8' tall = π × 6² × 96 = 10_857.34 cu in
+    let v = concrete::column_volume(
+        Length::from_inches(Rational64::from_integer(12)),
+        Length::from_feet_int(8),
+    )
+    .unwrap();
+    let f = *v.numer() as f64 / *v.denom() as f64;
+    let expected = std::f64::consts::PI * 36.0 * 96.0;
+    assert!((f - expected).abs() < 0.01, "got {f}, expected {expected}");
+}
+
+#[test]
+fn cone_volume_is_one_third_of_cylinder() {
+    let cyl = concrete::column_volume(
+        Length::from_inches(Rational64::from_integer(12)),
+        Length::from_feet_int(6),
+    )
+    .unwrap();
+    let cone = concrete::cone_volume(
+        Length::from_inches(Rational64::from_integer(12)),
+        Length::from_feet_int(6),
+    )
+    .unwrap();
+    let ratio =
+        (*cyl.numer() as f64 / *cyl.denom() as f64) / (*cone.numer() as f64 / *cone.denom() as f64);
+    assert!((ratio - 3.0).abs() < 1e-3);
 }
