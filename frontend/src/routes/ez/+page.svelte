@@ -4,11 +4,12 @@
     { href: '/ez/drywall', title: 'Drywall', body: 'Sheets needed for a wall with door and window cutouts.' },
     { href: '/ez/board-feet', title: 'Board feet', body: 'Total board feet for a count of lumber pieces, with optional cost.' },
     { href: '/ez/polygon', title: 'Polygon', body: 'Regular n-sided polygon from any one of side / apothem / circumradius.' },
-    { href: '/ez/circle', title: 'Circle / Arc', body: 'Circle from radius / diameter / circumference / area, plus arc length and chord.' }
-    // Future:
-    // { href: '/ez/baluster',  title: 'Baluster spacing', body: '…' },
-    // { href: '/ez/concrete',  title: 'Concrete volume',  body: '…' },
-    // { href: '/ez/rebar',     title: 'Rebar spacing',    body: '…' },
+    { href: '/ez/circle', title: 'Circle / Arc', body: 'Circle from radius / diameter / circumference / area, plus arc length and chord.' },
+    { href: '/ez/concrete', title: 'Concrete', body: 'Cubic yards for a slab, column, or cone with optional waste factor.' },
+    { href: '/ez/studs', title: 'Studs', body: 'Field stud count for a wall at OC spacing, with corner and opening extras.' },
+    { href: '/ez/roofing', title: 'Roofing', body: 'Asphalt bundles from direct area or footprint × pitch multiplier.' },
+    { href: '/ez/baluster', title: 'Balusters', body: 'Even baluster layout that satisfies the IRC 4" sphere code.' },
+    { href: '/ez/rebar', title: 'Rebar', body: 'Bar count, linear feet, and weight for a grid in a slab.' }
   ];
 </script>
 
