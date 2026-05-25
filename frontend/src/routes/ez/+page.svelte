@@ -1,7 +1,10 @@
 <script lang="ts">
   // List of EZ Calc forms. Add new entries here as new routes are created.
   const calcs = [
-    { href: '/ez/drywall', title: 'Drywall', body: 'Sheets needed for a wall with door and window cutouts.' }
+    { href: '/ez/drywall', title: 'Drywall', body: 'Sheets needed for a wall with door and window cutouts.' },
+    { href: '/ez/board-feet', title: 'Board feet', body: 'Total board feet for a count of lumber pieces, with optional cost.' },
+    { href: '/ez/polygon', title: 'Polygon', body: 'Regular n-sided polygon from any one of side / apothem / circumradius.' },
+    { href: '/ez/circle', title: 'Circle / Arc', body: 'Circle from radius / diameter / circumference / area, plus arc length and chord.' }
     // Future:
     // { href: '/ez/baluster',  title: 'Baluster spacing', body: '…' },
     // { href: '/ez/concrete',  title: 'Concrete volume',  body: '…' },
