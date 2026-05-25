@@ -47,13 +47,18 @@ The architecture is in good shape for what you want to do:
 These are the gaps to close *before* starting on the iOS app, so the
 engine you bind into Swift is the version you actually want to ship.
 
-- [ ] **Preferences screen** (web + later iOS). A persistent settings
-      pane backed by `localStorage` on web, `UserDefaults` on iOS.
-      Settings:
-      - Default fraction resolution (1/4, 1/8, 1/16)
-      - Default angle mode (degrees vs radians)
-      - Default unit (feet-inch vs meters)
-      - Tape auto-save on/off
+- [x] **Preferences screen** at `/preferences`, backed by
+      `localStorage` (key `cc.preferences.v1`). Settings: default
+      fraction resolution (1/4, 1/8, 1/16), default length format,
+      degrees vs radians. Applied on app startup via a `Convert`
+      KeyEvent — first render already shows the chosen mode. The
+      `Preferences` shape is the contract iOS will mirror against
+      `UserDefaults`.
+- [x] **Saved tapes** at `/tapes`, backed by `localStorage` (key
+      `cc.tapes.v1`). `💾 Save` button in the tape toolbar prompts
+      for a name and persists the engine's JSON. The tapes page
+      lists newest-first with Load / Delete actions and a two-step
+      "Delete all". Size cap 1 MB per tape, 200 tapes total.
 - [x] **Polygon & Circle** surfaced via EZ Calc forms (/ez/polygon,
       /ez/circle). Engine math at `operations/polygon.rs` /
       `operations/circle.rs` shadowed in JS for live preview; results

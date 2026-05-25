@@ -8,6 +8,7 @@
   import HelpOverlay from '$lib/HelpOverlay.svelte';
   import { calc } from '$lib/calc';
   import { bindKeyboard } from '$lib/keyboard';
+  import { loadPreferences, preferencesToConvertKey } from '$lib/preferences';
 
   let ready = false;
   let initError: string | null = null;
@@ -18,6 +19,10 @@
     (async () => {
       try {
         await calc.init();
+        // Apply stored preferences before the user sees the display so
+        // the first render already shows the chosen format / resolution.
+        const prefs = loadPreferences();
+        calc.send(preferencesToConvertKey(prefs));
         ready = true;
         teardown = bindKeyboard(calc);
       } catch (e) {
@@ -36,7 +41,11 @@
   <header>
     <div class="title-row">
       <h1>Construction Calc</h1>
-      <a class="ez-link" href="/ez">EZ Calc →</a>
+      <nav class="links">
+        <a href="/tapes">Tapes</a>
+        <a href="/ez">EZ Calc</a>
+        <a href="/preferences">Prefs</a>
+      </nav>
     </div>
     <p class="tag">Long-press any key for help.</p>
   </header>
@@ -69,8 +78,9 @@
   main { max-width: 480px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 100vh; }
   .title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
-  .ez-link { color: #fcd34d; text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.5rem; border: 1px solid rgba(252, 211, 77, 0.3); border-radius: 0.3rem; }
-  .ez-link:hover { background: rgba(252, 211, 77, 0.1); }
+  .links { display: flex; gap: 0.4rem; }
+  .links a { color: #fcd34d; text-decoration: none; font-size: 0.8rem; padding: 0.2rem 0.5rem; border: 1px solid rgba(252, 211, 77, 0.3); border-radius: 0.3rem; }
+  .links a:hover { background: rgba(252, 211, 77, 0.1); }
   .tag { margin: 0; color: #94a3b8; font-size: 0.8rem; }
   .loading, .error, .hint { color: #94a3b8; }
   .error { color: #ff7676; }
