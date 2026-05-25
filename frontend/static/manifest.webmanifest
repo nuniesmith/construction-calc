@@ -1,0 +1,26 @@
+{
+  "name": "Construction Calc",
+  "short_name": "ConstCalc",
+  "description": "Exact-rational construction math calculator. Feet-inch-fraction arithmetic with no float drift, rafter / stair / polygon / circle solvers, plus estimating forms for drywall, concrete, studs, roofing, rebar, and balusters.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -45,6 +45,7 @@
         <a href="/tapes">Tapes</a>
         <a href="/ez">EZ Calc</a>
         <a href="/preferences">Prefs</a>
+        <a href="/about">About</a>
       </nav>
     </div>
     <p class="tag">Long-press any key for help.</p>

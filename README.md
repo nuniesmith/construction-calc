@@ -4,9 +4,15 @@ A construction-math calculator with exact-rational dimensional arithmetic.
 
 The engine is a pure Rust crate (`calc-core`) with no I/O and no UI
 dependencies. A WebAssembly wrapper (`calc-wasm`) drives a SvelteKit
-frontend. A CLI (`calc-cli`) lets you exercise the engine from the
-terminal. Later, a UniFFI wrapper crate can bind the same engine to
-Swift (iOS) and Kotlin (Android) without changing any of the math.
+frontend that doubles as a PWA — installable on iOS / Android / desktop
+from the browser's "add to home screen" menu. A CLI (`calc-cli`) drives
+the engine from the terminal. A UniFFI wrapper crate (`calc-uniffi`)
+generates Swift / Kotlin bindings for the upcoming iOS app — same
+engine, native UI.
+
+Roadmap and iOS App Store launch plan: [`todo.md`](todo.md).
+Marketing pitch: [`/about`](frontend/src/routes/about/+page.svelte) on
+the web app.
 
 ## Why exact rationals?
 

@@ -137,14 +137,23 @@ need a button + help text.
 - [x] Long-press help overlay
 - [x] Format strip
 - [x] Physical keyboard support (web)
-- [ ] Saved tapes list (named, persisted)
+- [x] Saved tapes list (named, persisted at `/tapes`)
+- [x] Settings tab (`/preferences`)
+- [x] PWA install support — `static/manifest.webmanifest` +
+      icons, installable on iOS Safari (Add to Home Screen),
+      Android Chrome (Install app), and desktop Chrome / Edge
+- [x] About / marketing page at `/about` for the App Store
+      cross-link
 - [ ] Per-key secondary functions exposed via the small red label above
       the key — like CMPro's `Slope` over `Pitch`, `R/Wall` over `Rise`,
       etc. On iOS this is a long-press; the existing long-press
       infrastructure can be repurposed to *invoke* the secondary key
       instead of just showing help.
-- [ ] Settings tab (Preferences)
 - [ ] Help tab (full reference manual)
+- [ ] Real PNG app icon (currently an SVG placeholder; iOS Safari
+      uses it for Add-to-Home-Screen but Apple prefers 180×180 PNG)
+- [ ] Service worker for true offline support (currently relies on
+      browser HTTP cache)
 
 ---
 
