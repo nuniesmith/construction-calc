@@ -83,5 +83,26 @@ export const HELP: Record<string, HelpEntry> = {
   negate: { title: 'Toggle sign', body: 'Flip the sign of the entry buffer.' },
   bs: { title: 'Backspace', body: 'Remove the last typed digit, decimal point, or fraction component.' },
   c: { title: 'Clear entry', body: 'Reset the entry buffer to zero. Pending operators and memory are preserved.' },
-  ac: { title: 'All clear', body: 'Reset everything: entry, pending op, rafter state, miter state. Memory is preserved.' }
+  ac: { title: 'All clear', body: 'Reset everything: entry, pending op, rafter state, miter state. Memory is preserved.' },
+  // -------- Memory --------
+  memstore: {
+    title: 'Memory store (MS)',
+    body: 'Overwrite memory slot 1 with the current display value. The engine reserves four slots; the keypad uses slot 1.'
+  },
+  memrecall: {
+    title: 'Memory recall (MR)',
+    body: 'Load the value from memory slot 1 onto the display.'
+  },
+  memplus: {
+    title: 'Memory add (M+)',
+    body: 'Add the current display value into memory slot 1 (in-place).'
+  },
+  memclear: {
+    title: 'Memory clear (MC)',
+    body: 'Zero out memory slot 1.'
+  },
+  memclearall: {
+    title: 'Clear all memory',
+    body: 'Zero out every memory slot the engine tracks.'
+  }
 };

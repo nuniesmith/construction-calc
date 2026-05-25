@@ -13,13 +13,24 @@
     span?: number;
   }
 
-  type Page = 'rafter' | 'trig' | 'miter';
+  type Page = 'rafter' | 'trig' | 'miter' | 'memory';
   let page: Page = 'rafter';
 
   const fnKey = (label: string, fun: FunctionKey, helpId = label.toLowerCase()): ButtonSpec => ({
     label,
     helpId,
     key: { type: 'function', fun },
+    style: 'fn'
+  });
+
+  const memKey = (
+    label: string,
+    op: 'store' | 'recall' | 'add' | 'clear',
+    helpId: string
+  ): ButtonSpec => ({
+    label,
+    helpId,
+    key: { type: 'memory', op, slot: 0 },
     style: 'fn'
   });
 
@@ -49,6 +60,27 @@
       // even if the disabled/visibility-hidden guards are stripped, a stray
       // click can't accidentally clear the calculator.
       { label: '', style: 'fn', span: 1 },
+      { label: '', style: 'fn', span: 1 }
+    ],
+    memory: [
+      memKey('MS', 'store', 'memstore'),
+      memKey('MR', 'recall', 'memrecall'),
+      memKey('M+', 'add', 'memplus'),
+      // Subtract maps to "add the negation"; the engine doesn't have a
+      // dedicated AddTo-with-negation op so we drive it through a Note
+      // for now. Better: add a MemoryOp::SubFrom variant later.
+      {
+        label: 'MC',
+        helpId: 'memclear',
+        key: { type: 'memory', op: 'clear', slot: 0 },
+        style: 'fn'
+      },
+      {
+        label: 'MC All',
+        helpId: 'memclearall',
+        key: { type: 'memory', op: 'clear_all' },
+        style: 'fn'
+      },
       { label: '', style: 'fn', span: 1 }
     ]
   };
@@ -112,6 +144,7 @@
   <button class:active={page === 'rafter'} on:click={() => (page = 'rafter')}>Rafter</button>
   <button class:active={page === 'trig'} on:click={() => (page = 'trig')}>Trig</button>
   <button class:active={page === 'miter'} on:click={() => (page = 'miter')}>Miter</button>
+  <button class:active={page === 'memory'} on:click={() => (page = 'memory')}>Mem</button>
 </div>
 
 <div class="keypad">

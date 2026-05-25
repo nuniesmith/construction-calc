@@ -54,25 +54,33 @@ engine you bind into Swift is the version you actually want to ship.
       - Default angle mode (degrees vs radians)
       - Default unit (feet-inch vs meters)
       - Tape auto-save on/off
-- [ ] **Polygon & Circle keys** exposed in the keypad UI. Engine
-      already supports them (see `operations/polygon.rs`,
-      `operations/circle.rs`); just need buttons + help entries.
-- [ ] **Memory keys (Store, Rcl, M+, M-)** exposed in the keypad. The
-      engine already has 4 memory slots — currently only reachable from
-      a physical keyboard / programmatic events.
-- [ ] **dms ↔ deg** angle conversion key (visible in the CMPro
-      screenshot — the `dms◄►deg` label).
-- [ ] **Cost-per-unit** function. Engine TODO from existing roadmap;
+- [x] **Polygon & Circle** surfaced via EZ Calc forms (/ez/polygon,
+      /ez/circle). Engine math at `operations/polygon.rs` /
+      `operations/circle.rs` shadowed in JS for live preview; results
+      pushed to tape on Save. A future improvement would add a
+      `PartialPolygon` / `PartialCircle` state machine so the keypad
+      can drive them directly the way Rafter does.
+- [x] **Board feet** EZ Calc form (/ez/board-feet) wraps
+      `operations/board_feet::board_feet`. Includes optional
+      cost-per-bf to compute total cost.
+- [x] **Memory keys (MS, MR, M+, MC, MC-All)** exposed via a new "Mem"
+      tab on the keypad. The engine has 4 slots — UI uses slot 0
+      since that's the universal calculator convention.
+- [ ] **Cost-per-unit** as a first-class engine function (currently a
+      board-feet-only field). Engine TODO from existing roadmap;
       essential for "estimating" apps.
+- [ ] **dms ↔ deg** angle conversion key (visible in the CMPro
+      screenshot — the `dms◄►deg` label). The `Angle` type already
+      decomposes to DMS; just need a Mode toggle + button.
 - [ ] **Save/share tape** — JSON export already exists in `calc-wasm`;
       wire up a Share Sheet on iOS, a download button on web.
 - [ ] **Compound miter** is partially implemented — finish wiring the
       Corner / Spring / Miter / Bevel keys (they exist as enum variants
       but the keypad Miter page just has those four buttons; verify the
       flow end-to-end).
-- [ ] **Board feet** key in keypad UI. Engine implemented.
-- [ ] **Material estimates** (sheets, studs, roofing bundles) — engine
-      done; surface in the EZ Calc forms layer.
+- [ ] **Material estimates** (sheets, studs, roofing bundles) —
+      drywall is in /ez/drywall; add `/ez/studs` and `/ez/roofing` for
+      the remaining two engine functions.
 
 ---
 
