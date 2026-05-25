@@ -1,6 +1,7 @@
 <script lang="ts">
   import { calc } from './calc';
   import { downloadText, pickTextFile, FileTooLargeError } from './download';
+  import { saveTape, TapeLimitReachedError, TapeTooLargeError } from './tapeStore';
 
   let copied = false;
   let copiedTimer: ReturnType<typeof setTimeout> | null = null;
@@ -13,6 +14,9 @@
   // Two-step confirm for destructive Clear — replaces window.confirm().
   let clearArmed = false;
   let clearArmedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Inline name-entry form for Save. `null` = hidden.
+  let saveName: string | null = null;
 
   function flash(kind: 'error' | 'info', text: string, ms = 4000) {
     message = { kind, text };
@@ -73,6 +77,32 @@
     }
   }
 
+  function startSave() {
+    saveName = `Tape ${new Date().toLocaleString()}`;
+  }
+
+  function commitSave() {
+    if (saveName === null) return;
+    const name = saveName;
+    try {
+      saveTape(name, calc.exportJson());
+      flash('info', `Saved as "${name}".`);
+      saveName = null;
+    } catch (e) {
+      if (e instanceof TapeTooLargeError) {
+        flash('error', `Tape is too large to save (${(e.size / 1024).toFixed(1)} KB). Try .json export.`);
+      } else if (e instanceof TapeLimitReachedError) {
+        flash('error', `Hit the saved-tape limit. Delete some at /tapes.`);
+      } else {
+        flash('error', `Save failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  function cancelSave() {
+    saveName = null;
+  }
+
   function clearTape() {
     if (!clearArmed) {
       // First click arms the action; the button label changes to confirm.
@@ -93,10 +123,24 @@
   <p class="msg {message.kind}" role="status" aria-live="polite">{message.text}</p>
 {/if}
 
+{#if saveName !== null}
+  <form class="save-form" on:submit|preventDefault={commitSave}>
+    <input
+      type="text"
+      bind:value={saveName}
+      placeholder="Tape name"
+      aria-label="Tape name"
+    />
+    <button type="submit">Save</button>
+    <button type="button" on:click={cancelSave}>Cancel</button>
+  </form>
+{/if}
+
 <div class="toolbar">
   <button on:click={copyMarkdown} title="Copy markdown to clipboard">
     {copied ? '✓ Copied' : '📋 Copy'}
   </button>
+  <button on:click={startSave} title="Save tape to the browser (see /tapes)">💾 Save</button>
   <button on:click={downloadMarkdown} title="Download as Markdown">.md</button>
   <button on:click={downloadJson} title="Download as JSON">.json</button>
   <button on:click={loadJson} title="Load tape from JSON file">Load</button>
@@ -154,5 +198,21 @@
     background: rgba(255, 255, 255, 0.05);
     color: #cbd5e1;
     border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .save-form {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+  }
+  .save-form input {
+    flex: 1;
+    min-width: 0;
+    background: #0e1623;
+    color: #f4f6fa;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.4rem;
+    padding: 0.3rem 0.5rem;
+    font: inherit;
+    font-size: 0.85rem;
   }
 </style>
