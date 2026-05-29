@@ -5,7 +5,6 @@ import CalcEngine
 /// (Rafter / Trig / Miter / Mem) over a 6-column grid of shared rows.
 /// Long-pressing a key surfaces its help entry via the `helpId` binding.
 struct KeypadView: View {
-    @Environment(CalculatorViewModel.self) private var vm
     @Binding var helpId: String?
 
     @State private var page: KeypadPage = .rafter
