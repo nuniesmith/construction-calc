@@ -129,8 +129,12 @@ release plan.
 ```bash
 $ cargo test -p calc-core
    ...
-   test result: ok. 56 passed; 0 failed
+   test result: ok. 71 passed; 0 failed
 ```
+
+The full workspace (`cargo test --workspace`) runs 75 Rust tests
+(adds the `calc-uniffi` binding tests), and the frontend
+(`cd frontend && npx vitest run`) runs 38 TypeScript tests.
 
 ## License
 

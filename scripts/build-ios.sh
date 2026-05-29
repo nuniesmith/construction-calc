@@ -17,22 +17,31 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-CRATE_NAME="calc_uniffi"
 LIB_NAME="libcalc_uniffi.a"
 FRAMEWORK="CalcEngine"
 OUT_DIR="ios"
 SWIFT_OUT="${OUT_DIR}/Sources/${FRAMEWORK}"
 XCF_OUT="${OUT_DIR}/${FRAMEWORK}.xcframework"
+IOS_TARGETS=(aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios)
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "error: build-ios.sh must run on macOS (need Xcode + lipo)" >&2
     exit 1
 fi
 
+if ! xcode-select -p >/dev/null 2>&1; then
+    echo "error: Xcode command-line tools not found. Run: xcode-select --install" >&2
+    exit 1
+fi
+
+echo "==> ensuring iOS Rust targets are installed"
+# Idempotent — a no-op if the target is already present.
+rustup target add "${IOS_TARGETS[@]}"
+
 echo "==> building static libs for iOS targets"
-cargo build --release -p calc-uniffi --target aarch64-apple-ios
-cargo build --release -p calc-uniffi --target aarch64-apple-ios-sim
-cargo build --release -p calc-uniffi --target x86_64-apple-ios
+for target in "${IOS_TARGETS[@]}"; do
+    cargo build --release -p calc-uniffi --target "$target"
+done
 
 echo "==> lipo: combining simulator slices into one fat archive"
 SIM_DIR="target/universal-ios-sim/release"
