@@ -24,9 +24,10 @@ The architecture is in good shape for what you want to do:
 - **Frontend (SvelteKit)** is the current "reference UI." For iOS it
   becomes a marketing site / web demo; the actual app will be native
   SwiftUI on top of UniFFI bindings.
-- **Tests** — 67 Rust tests + 21 frontend tests, all passing as of the
-  latest cleanup. Keep this discipline; App Review prefers crashes-never
-  apps, and Rust + property-style testing get you most of the way.
+- **Tests** — 75 Rust tests (71 in `calc-core` + 4 in `calc-uniffi`)
+  and 38 frontend TypeScript tests, all passing as of the latest
+  audit. Keep this discipline; App Review prefers crashes-never apps,
+  and Rust + property-style testing get you most of the way.
 
 **Recently shipped (this branch):**
 
@@ -183,14 +184,51 @@ ios/                       ← Xcode project, SwiftUI app
       bindings generation end-to-end in CI on Linux against the
       `.so` (Swift output looks correct: `Calculator` class +
       `handle(event:)` method + all enums).
-- [ ] **Install iOS Rust targets on the build Mac.** One-time setup:
-      `rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios`
+- [ ] **Install iOS Rust targets on the build Mac.** `scripts/build-ios.sh`
+      now does this for you (`rustup target add` is idempotent), but for
+      reference the targets are: `aarch64-apple-ios`,
+      `aarch64-apple-ios-sim`, `x86_64-apple-ios`.
 - [ ] **Create the Xcode project** under `ios/ConstructionCalc/`. Use
       SwiftUI. iOS 17+ target is fine (lets you use latest APIs; cuts
       out only ~5% of users at this point).
 - [ ] **Wire up the bindings.** Import `CalcEngine.xcframework`,
       instantiate `Calculator` once in an `@Observable` view model,
       send `KeyEvent`s on button taps.
+
+#### Day-one-on-the-Mac checklist
+
+Everything that *can* be verified off-Mac has been. When the laptop
+arrives, work top to bottom:
+
+1. `xcode-select --install` (or install full Xcode from the App Store).
+2. From the repo root: `bash scripts/build-ios.sh`. It installs the
+   Rust targets, builds all three slices, generates the Swift
+   bindings, and assembles `ios/CalcEngine.xcframework`. The generated
+   artifacts are already gitignored.
+3. If the build fails, the most likely culprits (none reproducible off
+   a Mac, so flagged here):
+   - **`panic = "abort"` vs UniFFI.** The workspace release profile in
+     `Cargo.toml` sets `panic = "abort"` (great for wasm size). UniFFI
+     wraps exported calls in `catch_unwind` to turn Rust panics into
+     Swift errors — with `abort`, a panic crashes the whole app
+     instead. The engine returns `Result` for every fallible path and
+     overflow wraps (not panics) in release, so this is *unlikely* to
+     bite, but if you see hard crashes on device, add an
+     iOS-specific profile with `panic = "unwind"` and rebuild.
+   - **Bitcode / minimum deployment target** mismatches — set the
+     framework's min iOS version to match the app target.
+4. Drag `ios/CalcEngine.xcframework` into the Xcode project's
+   *General → Frameworks, Libraries, and Embedded Content*, and add
+   `ios/Sources/CalcEngine/CalcEngine.swift` to the target's sources.
+5. Smoke-test in the simulator: `import CalcEngine`, then
+   `let calc = Calculator(); calc.handle(event: .digit(value: 5))` and
+   confirm `displayString()` returns `"5"`.
+
+The TypeScript shapes the iOS UI should mirror are already settled and
+won't drift: see `frontend/src/lib/calc.ts` (`Key`/`Unit`/`FunctionKey`)
+and `frontend/src/lib/preferences.ts` (`Preferences` →
+`UserDefaults`). The web `Keypad.svelte` / `FormatStrip.svelte` are the
+reference layouts to port.
 
 ### 3.2 SwiftUI app structure
 

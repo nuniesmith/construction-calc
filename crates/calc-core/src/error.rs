@@ -19,7 +19,7 @@ pub enum ParseError {
     #[error("malformed length expression: {0}")]
     Malformed(String),
 
-    #[error("denominator must be a power of two between 2 and 64, got {0}")]
+    #[error("denominator must be a power of two between 2 and 16, got {0}")]
     InvalidDenominator(u32),
 
     #[error("decimal precision must be 0..=12, got {0}")]
