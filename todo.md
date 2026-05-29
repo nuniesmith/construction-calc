@@ -232,33 +232,55 @@ reference layouts to port.
 
 ### 3.2 SwiftUI app structure
 
+- [x] **Scaffolded the SwiftUI sources** under `ios/ConstructionCalc/`
+      (committed; compiles once `CalcEngine.xcframework` is linked).
+      Written against the *exact* generated binding API (verified by
+      regenerating the Swift from the `.so` on Linux). See
+      `ios/README.md` for the click-by-click Xcode assembly steps.
+
 ```
 ios/ConstructionCalc/
-├── ConstructionCalcApp.swift     ← @main entrypoint
-├── Views/
-│   ├── CalculatorView.swift      ← Display + Keypad + FormatStrip
-│   ├── KeypadView.swift          ← grid of buttons w/ long-press
-│   ├── DisplayView.swift
-│   ├── FormatStripView.swift
-│   ├── TapeView.swift
-│   ├── HelpOverlayView.swift
-│   ├── PreferencesView.swift     ← settings tab
-│   └── EZCalcListView.swift      ← form-based tools
-├── ViewModels/
-│   └── CalculatorVM.swift        ← @Observable wrapper around UniFFI
-├── Engine/
-│   └── CalcEngine.xcframework    ← built from crates/calc-uniffi
-└── Assets.xcassets/              ← icon, colors
+├── ConstructionCalcApp.swift     ← @main entrypoint                 [done]
+├── CalculatorViewModel.swift     ← @Observable wrapper over UniFFI  [done]
+├── Haptics.swift                 ← light tap feedback               [done]
+├── Model/
+│   ├── KeypadModel.swift          ← button grid (Keypad.svelte)     [done]
+│   ├── FormatOption.swift         ← format strip                    [done]
+│   ├── Preferences.swift          ← UserDefaults (preferences.ts)   [done]
+│   └── HelpText.swift             ← long-press help (help.ts)       [done]
+└── Views/
+    ├── CalculatorView.swift       ← root screen                     [done]
+    ├── DisplayView.swift                                            [done]
+    ├── FormatStripView.swift                                        [done]
+    ├── KeypadView.swift           ← Grid w/ long-press help         [done]
+    ├── TapeView.swift             ← share / clear                   [done]
+    ├── HelpOverlayView.swift                                        [done]
+    └── PreferencesView.swift      ← settings sheet                  [done]
 ```
 
-- [ ] **Haptics on key press.** `UIImpactFeedbackGenerator(style:
-      .light)` — costs nothing and makes the app feel premium.
+- [x] **Haptics on key press** — `UIImpactFeedbackGenerator(.light)`
+      in `Haptics.swift`, fired from the view model's `send`.
+- [ ] **EZ Calc forms** — the 9 web forms (`/ez/*`) aren't ported yet;
+      they're pure-Swift arithmetic + a tape note, easy to add as a
+      navigation list once the core app builds.
 - [ ] **Keyboard support** via `.keyboardShortcut` on each button (for
       iPad with hardware keyboard).
 - [ ] **iPad layout** — wider keypad, two-pane (calculator + tape side
       by side). Universal binary; same purchase covers iPhone + iPad.
-- [ ] **Dark mode + light mode** — auto-switch via `@Environment(\
-      .colorScheme)`.
+- [ ] **App icon + Assets.xcassets** — reuse the web SVG mark as a
+      starting point; needs a 1024×1024 PNG for the store.
+- [ ] **Light mode** — the app is dark-locked today
+      (`preferredColorScheme(.dark)`); add a light palette later.
+
+> **Engine gap found while scaffolding:** the angle-mode preference
+> (degrees vs radians) is stored in `UserDefaults` (and in the web's
+> `localStorage`) but the engine has **no `KeyEvent` to switch angle
+> mode at runtime** — it's hard-wired to degrees in `Mode::default`.
+> Wiring it up needs a new `KeyEvent` variant + handler in `calc-core`,
+> a `calc-uniffi` binding, and the web `Key` type. Small, but it's a
+> real cross-cutting change — do it as its own PR. The UI toggle is
+> present on both platforms today as a stored-but-not-yet-applied
+> setting (documented in `PreferencesView.swift`).
 
 ### 3.3 App Store Connect setup
 
