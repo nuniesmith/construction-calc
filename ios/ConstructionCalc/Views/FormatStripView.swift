@@ -9,7 +9,6 @@ struct FormatStripView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(Array(FormatOption.all.enumerated()), id: \.element.id) { index, option in
-                    let isActive = vm.activeFormatIndex == index
                     Button {
                         vm.pickFormat(index)
                     } label: {
@@ -19,10 +18,11 @@ struct FormatStripView: View {
                             .padding(.vertical, 6)
                             .background(
                                 RoundedRectangle(cornerRadius: 7)
-                                    .fill(isActive ? Color(red: 0.85, green: 0.47, blue: 0.02)
-                                                   : Color.white.opacity(0.04))
+                                    .fill(vm.activeFormatIndex == index
+                                          ? Color(red: 0.85, green: 0.47, blue: 0.02)
+                                          : Color.white.opacity(0.04))
                             )
-                            .foregroundStyle(isActive ? .white : Color(white: 0.8))
+                            .foregroundStyle(vm.activeFormatIndex == index ? .white : Color(white: 0.8))
                     }
                     .buttonStyle(.plain)
                 }
