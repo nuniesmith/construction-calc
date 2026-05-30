@@ -97,4 +97,10 @@ struct Preferences {
             return .convert(format: .yards(precision: 4))
         }
     }
+
+    /// Translate the angle preference into the engine `SetAngleMode` event.
+    /// Mirrors `preferencesToAngleModeKey()` in `preferences.ts`.
+    func toAngleModeKey() -> KeyEvent {
+        .setAngleMode(degrees: angleInDegrees)
+    }
 }

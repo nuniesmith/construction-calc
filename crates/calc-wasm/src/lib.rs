@@ -34,6 +34,9 @@ enum WasmKey {
         denom: Option<u32>,
         precision: Option<u8>,
     },
+    SetAngleMode {
+        degrees: bool,
+    },
     Memory {
         op: String,
         slot: Option<u8>,
@@ -186,6 +189,7 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
             };
             KeyEvent::Convert(fmt)
         }
+        WasmKey::SetAngleMode { degrees } => KeyEvent::SetAngleMode(degrees),
         WasmKey::Memory { op, slot } => {
             let s = slot.unwrap_or(0);
             KeyEvent::Memory(match op.as_str() {

@@ -82,7 +82,15 @@ final class CalculatorViewModel {
     private func applyStoredPreferences() {
         let prefs = Preferences.load()
         _ = calc.handle(event: prefs.toConvertKey())
+        _ = calc.handle(event: prefs.toAngleModeKey())
         activeFormatIndex = FormatOption.index(matching: prefs)
+    }
+
+    /// Set whether trig keys read a plain number as degrees or radians.
+    /// Called live from the preferences screen. The display doesn't change,
+    /// so there's nothing to republish.
+    func setAngleMode(degrees: Bool) {
+        _ = calc.handle(event: .setAngleMode(degrees: degrees))
     }
 
     /// Re-read preferences and apply the display format to the live engine.

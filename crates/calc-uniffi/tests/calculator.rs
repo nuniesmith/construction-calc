@@ -82,3 +82,31 @@ fn export_and_reload_json_tape_round_trips() {
     let md = calc2.export_markdown();
     assert!(!md.is_empty(), "reloaded tape should have content");
 }
+
+#[test]
+fn set_angle_mode_switches_trig_through_the_bindings() {
+    use calc_uniffi::FunctionKey;
+
+    // Degrees (default): sin(30°) = 0.5
+    let calc = Calculator::new();
+    calc.handle(KeyEvent::Digit { value: 3 });
+    calc.handle(KeyEvent::Digit { value: 0 });
+    let snap = calc.handle(KeyEvent::Function {
+        function: FunctionKey::Sin,
+    });
+    assert_eq!(snap.display, "0.5");
+
+    // Radians: sin(30 rad) ≈ -0.988
+    let calc = Calculator::new();
+    calc.handle(KeyEvent::SetAngleMode { degrees: false });
+    calc.handle(KeyEvent::Digit { value: 3 });
+    calc.handle(KeyEvent::Digit { value: 0 });
+    let snap = calc.handle(KeyEvent::Function {
+        function: FunctionKey::Sin,
+    });
+    assert!(
+        snap.display.starts_with("-0.988"),
+        "expected sin(30 rad) ≈ -0.988, got {}",
+        snap.display
+    );
+}

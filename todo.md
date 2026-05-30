@@ -272,15 +272,13 @@ ios/ConstructionCalc/
 - [ ] **Light mode** — the app is dark-locked today
       (`preferredColorScheme(.dark)`); add a light palette later.
 
-> **Engine gap found while scaffolding:** the angle-mode preference
-> (degrees vs radians) is stored in `UserDefaults` (and in the web's
-> `localStorage`) but the engine has **no `KeyEvent` to switch angle
-> mode at runtime** — it's hard-wired to degrees in `Mode::default`.
-> Wiring it up needs a new `KeyEvent` variant + handler in `calc-core`,
-> a `calc-uniffi` binding, and the web `Key` type. Small, but it's a
-> real cross-cutting change — do it as its own PR. The UI toggle is
-> present on both platforms today as a stored-but-not-yet-applied
-> setting (documented in `PreferencesView.swift`).
+> **Engine gap CLOSED (angle mode).** The degrees/radians preference is
+> now wired end to end: `KeyEvent::SetAngleMode(bool)` in `calc-core`
+> (with handler + tests), surfaced through `calc-wasm`, `calc-uniffi`,
+> and the CLI (`angle deg|rad`). The web app and iOS both send it at
+> launch and live from the preferences screen, so the toggle actually
+> changes how trig keys read a plain number. Verified by tests that
+> compare `sin(30)` in degrees (0.5) vs radians (≈ −0.988).
 
 ### 3.3 App Store Connect setup
 
