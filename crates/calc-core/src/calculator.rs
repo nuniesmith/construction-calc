@@ -9,13 +9,13 @@ use num_rational::Rational64;
 use num_traits::Zero;
 
 use crate::error::CalcError;
-use crate::format::LengthFormat;
+use crate::format::{AreaFormat, LengthFormat, VolumeFormat};
 use crate::length::Length;
 use crate::numeric::{rational_from_f64, rational_from_f64_on_grid, rational_to_f64};
 use crate::operations::compound_miter_state::{MiterField, PartialCompoundMiter};
 use crate::operations::rafter::{PartialRafter, RafterField};
 use crate::tape::{Tape, TapeEntry};
-use crate::value::Value;
+use crate::value::{Dimension, Value};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BinaryOp {
@@ -85,6 +85,10 @@ pub enum KeyEvent {
     Unit(LengthUnitKey),
     Function(FunctionKey),
     Convert(LengthFormat),
+    /// Switch how an area result is displayed (sq in / ft / yd / m, acres).
+    ConvertArea(AreaFormat),
+    /// Switch how a volume result is displayed (cu in / ft / yd / m, gal, L).
+    ConvertVolume(VolumeFormat),
     /// Set whether trig keys interpret/emit angles in degrees (`true`) or
     /// radians (`false`). Mirrors a user preference; persists in `Mode`.
     SetAngleMode(bool),
@@ -101,6 +105,8 @@ pub enum KeyEvent {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Mode {
     pub default_length_format: LengthFormat,
+    pub default_area_format: AreaFormat,
+    pub default_volume_format: VolumeFormat,
     pub angle_in_degrees: bool,
 }
 
@@ -108,6 +114,10 @@ impl Default for Mode {
     fn default() -> Self {
         Self {
             default_length_format: LengthFormat::FeetInchFraction { denom: 16 },
+            // Square / cubic feet are the most useful defaults for builders;
+            // `17_280 sq in` reads as `120 sq ft`. The strip offers the rest.
+            default_area_format: AreaFormat::SquareFeet { precision: 2 },
+            default_volume_format: VolumeFormat::CubicFeet { precision: 2 },
             angle_in_degrees: true,
         }
     }
@@ -321,6 +331,12 @@ impl Calculator {
             KeyEvent::Equals => self.commit_equals()?,
             KeyEvent::Function(f) => self.handle_function(f)?,
             KeyEvent::Convert(fmt) => self.convert_display(fmt)?,
+            KeyEvent::ConvertArea(fmt) => {
+                self.mode.default_area_format = fmt.validate().map_err(CalcError::Parse)?
+            }
+            KeyEvent::ConvertVolume(fmt) => {
+                self.mode.default_volume_format = fmt.validate().map_err(CalcError::Parse)?
+            }
             KeyEvent::SetAngleMode(degrees) => self.mode.angle_in_degrees = degrees,
             KeyEvent::Memory(m) => self.handle_memory(m)?,
             KeyEvent::Clear => {
@@ -578,12 +594,17 @@ impl Calculator {
         match self.display {
             Value::Scalar(r) => crate::format::rational_to_decimal_string(r, 6),
             Value::Length(l) => crate::format::format_length(&l, self.mode.default_length_format),
-            Value::Area(r) => format!("{} sq in", crate::format::rational_to_decimal_string(r, 4)),
-            Value::Volume(r) => {
-                format!("{} cu in", crate::format::rational_to_decimal_string(r, 4))
-            }
+            Value::Area(r) => crate::format::format_area(r, self.mode.default_area_format),
+            Value::Volume(r) => crate::format::format_volume(r, self.mode.default_volume_format),
             Value::Angle(a) => a.to_string(),
         }
+    }
+
+    /// The dimensional category of the current display value, so a UI can
+    /// show the matching unit controls (length vs. area vs. volume) without
+    /// parsing [`display_string`](Self::display_string).
+    pub fn display_dimension(&self) -> Dimension {
+        self.display.dimension()
     }
 }
 

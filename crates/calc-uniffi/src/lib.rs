@@ -20,11 +20,15 @@
 
 use std::sync::Mutex;
 
+use calc_core::Dimension as CoreDimension;
 use calc_core::calculator::{
     BinaryOp as CoreBinaryOp, Calculator as CoreCalculator, FunctionKey as CoreFn,
     KeyEvent as CoreKeyEvent, LengthUnitKey as CoreUnit, MemoryOp as CoreMemOp,
 };
-use calc_core::format::LengthFormat as CoreLengthFormat;
+use calc_core::format::{
+    AreaFormat as CoreAreaFormat, LengthFormat as CoreLengthFormat,
+    VolumeFormat as CoreVolumeFormat,
+};
 
 uniffi::setup_scaffolding!("calc_uniffi");
 
@@ -96,6 +100,38 @@ pub enum LengthFormat {
     Meters { precision: u8 },
 }
 
+/// Display format for area results.
+#[derive(uniffi::Enum, Clone, Copy, Debug)]
+pub enum AreaFormat {
+    SquareInches { precision: u8 },
+    SquareFeet { precision: u8 },
+    SquareYards { precision: u8 },
+    SquareMeters { precision: u8 },
+    Acres { precision: u8 },
+}
+
+/// Display format for volume results.
+#[derive(uniffi::Enum, Clone, Copy, Debug)]
+pub enum VolumeFormat {
+    CubicInches { precision: u8 },
+    CubicFeet { precision: u8 },
+    CubicYards { precision: u8 },
+    CubicMeters { precision: u8 },
+    Gallons { precision: u8 },
+    Liters { precision: u8 },
+}
+
+/// Dimensional category of the display value, so the iOS UI can show the
+/// matching unit controls (length vs. area vs. volume).
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Dimension {
+    Scalar,
+    Length,
+    Area,
+    Volume,
+    Angle,
+}
+
 #[derive(uniffi::Enum, Clone, Debug)]
 pub enum KeyEvent {
     Digit {
@@ -116,6 +152,14 @@ pub enum KeyEvent {
     },
     Convert {
         format: LengthFormat,
+    },
+    /// Switch how an area result is displayed.
+    ConvertArea {
+        format: AreaFormat,
+    },
+    /// Switch how a volume result is displayed.
+    ConvertVolume {
+        format: VolumeFormat,
     },
     /// Set whether trig keys use degrees (`true`) or radians (`false`).
     SetAngleMode {
@@ -138,6 +182,9 @@ pub enum KeyEvent {
 pub struct Snapshot {
     /// The display register, already formatted for the user's chosen mode.
     pub display: String,
+    /// Dimensional category of the display value, so the UI can show the
+    /// matching unit controls (length vs. area vs. volume).
+    pub dimension: Dimension,
     /// Set when the last event failed (e.g. divide by zero). The display
     /// is still valid — Swift can show this in a toast / banner.
     pub error: Option<String>,
@@ -171,6 +218,7 @@ impl Calculator {
         let error = calc.handle(core_ev).err().map(|e| e.to_string());
         Snapshot {
             display: calc.display_string(),
+            dimension: dimension_from_core(calc.display_dimension()),
             error,
             tape_markdown: calc.tape.to_markdown(),
         }
@@ -274,6 +322,21 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             LengthFormat::Yards { precision } => CoreLengthFormat::Yards { precision },
             LengthFormat::Meters { precision } => CoreLengthFormat::Meters { precision },
         }),
+        KeyEvent::ConvertArea { format } => CoreKeyEvent::ConvertArea(match format {
+            AreaFormat::SquareInches { precision } => CoreAreaFormat::SquareInches { precision },
+            AreaFormat::SquareFeet { precision } => CoreAreaFormat::SquareFeet { precision },
+            AreaFormat::SquareYards { precision } => CoreAreaFormat::SquareYards { precision },
+            AreaFormat::SquareMeters { precision } => CoreAreaFormat::SquareMeters { precision },
+            AreaFormat::Acres { precision } => CoreAreaFormat::Acres { precision },
+        }),
+        KeyEvent::ConvertVolume { format } => CoreKeyEvent::ConvertVolume(match format {
+            VolumeFormat::CubicInches { precision } => CoreVolumeFormat::CubicInches { precision },
+            VolumeFormat::CubicFeet { precision } => CoreVolumeFormat::CubicFeet { precision },
+            VolumeFormat::CubicYards { precision } => CoreVolumeFormat::CubicYards { precision },
+            VolumeFormat::CubicMeters { precision } => CoreVolumeFormat::CubicMeters { precision },
+            VolumeFormat::Gallons { precision } => CoreVolumeFormat::Gallons { precision },
+            VolumeFormat::Liters { precision } => CoreVolumeFormat::Liters { precision },
+        }),
         KeyEvent::SetAngleMode { degrees } => CoreKeyEvent::SetAngleMode(degrees),
         KeyEvent::Memory { op } => CoreKeyEvent::Memory(match op {
             MemoryOp::Store { slot } => CoreMemOp::Store(slot),
@@ -286,5 +349,15 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
         KeyEvent::Clear => CoreKeyEvent::Clear,
         KeyEvent::ClearAll => CoreKeyEvent::ClearAll,
         KeyEvent::Note { text } => CoreKeyEvent::Note(text),
+    }
+}
+
+fn dimension_from_core(d: CoreDimension) -> Dimension {
+    match d {
+        CoreDimension::Scalar => Dimension::Scalar,
+        CoreDimension::Length => Dimension::Length,
+        CoreDimension::Area => Dimension::Area,
+        CoreDimension::Volume => Dimension::Volume,
+        CoreDimension::Angle => Dimension::Angle,
     }
 }

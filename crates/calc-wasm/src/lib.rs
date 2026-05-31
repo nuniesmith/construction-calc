@@ -1,7 +1,7 @@
 //! Web assembly bindings for the calculator.
 
 use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey, MemoryOp};
-use calc_core::format::LengthFormat;
+use calc_core::format::{AreaFormat, LengthFormat, VolumeFormat};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -34,6 +34,14 @@ enum WasmKey {
         denom: Option<u32>,
         precision: Option<u8>,
     },
+    ConvertArea {
+        format: String,
+        precision: Option<u8>,
+    },
+    ConvertVolume {
+        format: String,
+        precision: Option<u8>,
+    },
     SetAngleMode {
         degrees: bool,
     },
@@ -50,8 +58,13 @@ enum WasmKey {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Snapshot {
     display: String,
+    /// Dimensional category of the display value ("scalar" / "length" /
+    /// "area" / "volume" / "angle") so the UI can show the matching format
+    /// controls without parsing `display`.
+    dimension: String,
     tape: serde_json::Value,
     error: Option<String>,
 }
@@ -84,6 +97,7 @@ impl WasmCalculator {
         }
         let snap = Snapshot {
             display: self.inner.display_string(),
+            dimension: self.inner.display_dimension().as_str().to_string(),
             tape: serde_json::to_value(&self.inner.tape).unwrap_or(serde_json::Value::Null),
             error,
         };
@@ -188,6 +202,31 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
                 other => return Err(format!("unknown format {other}")),
             };
             KeyEvent::Convert(fmt)
+        }
+        WasmKey::ConvertArea { format, precision } => {
+            let p = precision.unwrap_or(2);
+            let fmt = match format.as_str() {
+                "sq_in" | "square_inches" => AreaFormat::SquareInches { precision: p },
+                "sq_ft" | "square_feet" => AreaFormat::SquareFeet { precision: p },
+                "sq_yd" | "square_yards" => AreaFormat::SquareYards { precision: p },
+                "sq_m" | "square_meters" => AreaFormat::SquareMeters { precision: p },
+                "acres" | "acre" => AreaFormat::Acres { precision: p },
+                other => return Err(format!("unknown area format {other}")),
+            };
+            KeyEvent::ConvertArea(fmt)
+        }
+        WasmKey::ConvertVolume { format, precision } => {
+            let p = precision.unwrap_or(2);
+            let fmt = match format.as_str() {
+                "cu_in" | "cubic_inches" => VolumeFormat::CubicInches { precision: p },
+                "cu_ft" | "cubic_feet" => VolumeFormat::CubicFeet { precision: p },
+                "cu_yd" | "cubic_yards" => VolumeFormat::CubicYards { precision: p },
+                "cu_m" | "cubic_meters" => VolumeFormat::CubicMeters { precision: p },
+                "gallons" | "gal" => VolumeFormat::Gallons { precision: p },
+                "liters" | "l" => VolumeFormat::Liters { precision: p },
+                other => return Err(format!("unknown volume format {other}")),
+            };
+            KeyEvent::ConvertVolume(fmt)
         }
         WasmKey::SetAngleMode { degrees } => KeyEvent::SetAngleMode(degrees),
         WasmKey::Memory { op, slot } => {
