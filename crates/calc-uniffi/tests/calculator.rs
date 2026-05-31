@@ -150,3 +150,22 @@ fn cost_per_unit_through_the_bindings() {
     assert_eq!(snap.display, "$20.00");
     assert_eq!(snap.dimension, Dimension::Money);
 }
+
+#[test]
+fn angle_format_toggles_through_the_bindings() {
+    use calc_uniffi::{AngleFormat, FunctionKey};
+
+    // atan(1) = 45°, shown as D°M'S" by default.
+    let calc = Calculator::new();
+    calc.handle(KeyEvent::Digit { value: 1 });
+    let snap = calc.handle(KeyEvent::Function {
+        function: FunctionKey::Atan,
+    });
+    assert_eq!(snap.display, "45\u{00B0} 0' 0\"");
+
+    // Switch to decimal degrees.
+    let snap = calc.handle(KeyEvent::ConvertAngle {
+        format: AngleFormat::DecimalDegrees { precision: 2 },
+    });
+    assert_eq!(snap.display, "45\u{00B0}");
+}

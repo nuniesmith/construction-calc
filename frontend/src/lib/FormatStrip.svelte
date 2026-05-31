@@ -44,21 +44,29 @@
     { label: 'L', key: { type: 'convertVolume', format: 'liters', precision: 2 } }
   ];
 
+  const angleChoices: FormatChoice[] = [
+    { label: '°′″', key: { type: 'convertAngle', format: 'dms' } },
+    { label: 'deg', key: { type: 'convertAngle', format: 'dd', precision: 4 } }
+  ];
+
   const snapshot = calc.snapshot;
 
-  // Scalar / angle have no unit conversion, so we keep showing the length
-  // strip (a length convert is a harmless no-op on a scalar display).
+  // Scalar has no unit conversion, so we keep showing the length strip (a
+  // length convert is a harmless no-op on a scalar display). Angle gets its
+  // own D°M'S" / decimal-degrees toggle.
   $: choices =
     $snapshot.dimension === 'area'
       ? areaChoices
       : $snapshot.dimension === 'volume'
         ? volumeChoices
-        : lengthChoices;
+        : $snapshot.dimension === 'angle'
+          ? angleChoices
+          : lengthChoices;
 
   // The index highlighted by default per dimension — matches the engine's
   // default Mode: length opens at 1/16" (index 2), area at ft² and volume at
-  // ft³ (index 1 of their sets).
-  const defaultActive: Record<string, number> = { area: 1, volume: 1 };
+  // ft³ (index 1 of their sets), angle at D°M'S" (index 0).
+  const defaultActive: Record<string, number> = { area: 1, volume: 1, angle: 0 };
 
   let active = 2;
   let shownDimension = $snapshot.dimension;

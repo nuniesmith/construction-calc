@@ -83,9 +83,11 @@ having a Mac with Xcode.
    unit = $total` over any dimension ($/ft, $/sq ft, $/cu yd, $/each).
    Wired through wasm + uniffi + CLI (`cost`) + a web `Cost` key. Replaces
    the board-feet-only field.
-4. **[ ] dms ↔ deg angle display toggle.** `Angle` already decomposes to
-   DMS; add an angle display mode (decimal degrees vs D°M'S") + a toggle
-   key. Pairs naturally with the now-wired angle mode from PR #13.
+4. **[x] dms ↔ deg angle display toggle.** New `AngleFormat`
+   (`DegMinSec` / `DecimalDegrees`) + `KeyEvent::ConvertAngle`, with a
+   `Mode.angle_format` independent of the trig-input `angle_in_degrees`.
+   Wired through wasm + uniffi + CLI (`afmt dms|dd`) + the format strip
+   (`°′″` / `deg`). Reuses the exact `Angle` Display for DMS.
 5. **[ ] Tape export / share.** JSON + Markdown export already exist in
    the engine. Wire a **download button** on web (`download.ts` is
    already present) and an iOS **Share Sheet**. Low effort, high "feels
@@ -142,7 +144,8 @@ Expanded detail for the Track A items above plus the smaller polish.
       cu yd/gal/L in the main calculator, with a dimension-aware strip.
 - [x] **Cost-per-unit** first-class engine function — `Value::Money` +
       `CostPerUnit`; prices by the shown unit ($/ft, $/sq ft, $/cu yd).
-- [ ] **dms ↔ deg** angle display toggle — see §1.4.
+- [x] **dms ↔ deg** angle display toggle — `AngleFormat` + `ConvertAngle`,
+      with a format-strip toggle (`°′″` / `deg`).
 - [ ] **Save/share tape** — download button (web) + Share Sheet (iOS).
 - [ ] **Compound miter** end-to-end verification — see §1.6.
 - [ ] **Material estimates** — sheathing/plates/headers + generalized

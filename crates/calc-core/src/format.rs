@@ -9,6 +9,7 @@ use num_integer::Integer;
 use num_rational::Rational64;
 use num_traits::Zero;
 
+use crate::angle::Angle;
 use crate::error::ParseError;
 use crate::length::Length;
 
@@ -151,6 +152,32 @@ impl VolumeFormat {
     }
 }
 
+/// Display format for angle results. Angle is stored as exact decimal
+/// degrees; this picks between sexagesimal D°M'S" and decimal degrees.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum AngleFormat {
+    /// Sexagesimal: `30° 15' 30"`.
+    DegMinSec,
+    /// Decimal degrees: `30.26°`.
+    DecimalDegrees { precision: u8 },
+}
+
+impl AngleFormat {
+    pub fn validate(self) -> Result<Self, ParseError> {
+        match self {
+            AngleFormat::DegMinSec => Ok(self),
+            AngleFormat::DecimalDegrees { precision } => {
+                if precision > MAX_PRECISION {
+                    Err(ParseError::InvalidPrecision(precision))
+                } else {
+                    Ok(self)
+                }
+            }
+        }
+    }
+}
+
 // Square inches per one target unit, plus precision + suffix. All exact:
 // 1 in = 25.4 mm, so 1 m = 5000/127 in and 1 m² = 25_000_000/16_129 in².
 // 1 acre = 43_560 ft² = 6_272_640 in².
@@ -226,6 +253,21 @@ pub fn format_volume(cu_in: Rational64, fmt: VolumeFormat) -> String {
         rational_to_decimal_string(cu_in / per_unit, precision),
         suffix
     )
+}
+
+/// Render an angle in the chosen format. `DegMinSec` reuses the `Angle`
+/// `Display` impl (`30° 15' 30"`); `DecimalDegrees` shows the exact degrees
+/// to `precision` places (`30.26°`).
+pub fn format_angle(a: &Angle, fmt: AngleFormat) -> String {
+    match fmt {
+        AngleFormat::DegMinSec => a.to_string(),
+        AngleFormat::DecimalDegrees { precision } => {
+            format!(
+                "{}\u{00B0}",
+                rational_to_decimal_string(a.degrees(), precision)
+            )
+        }
+    }
 }
 
 /// Render a money amount in dollars, always with two decimal places and a

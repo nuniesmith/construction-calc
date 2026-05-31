@@ -26,7 +26,7 @@ use calc_core::calculator::{
     KeyEvent as CoreKeyEvent, LengthUnitKey as CoreUnit, MemoryOp as CoreMemOp,
 };
 use calc_core::format::{
-    AreaFormat as CoreAreaFormat, LengthFormat as CoreLengthFormat,
+    AngleFormat as CoreAngleFormat, AreaFormat as CoreAreaFormat, LengthFormat as CoreLengthFormat,
     VolumeFormat as CoreVolumeFormat,
 };
 
@@ -121,6 +121,13 @@ pub enum VolumeFormat {
     Liters { precision: u8 },
 }
 
+/// Display format for angle results: sexagesimal D°M'S" or decimal degrees.
+#[derive(uniffi::Enum, Clone, Copy, Debug)]
+pub enum AngleFormat {
+    DegMinSec,
+    DecimalDegrees { precision: u8 },
+}
+
 /// Dimensional category of the display value, so the iOS UI can show the
 /// matching unit controls (length vs. area vs. volume).
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
@@ -165,6 +172,9 @@ pub enum KeyEvent {
     /// Switch how a volume result is displayed.
     ConvertVolume {
         format: VolumeFormat,
+    },
+    ConvertAngle {
+        format: AngleFormat,
     },
     /// Set whether trig keys use degrees (`true`) or radians (`false`).
     SetAngleMode {
@@ -341,6 +351,12 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             VolumeFormat::CubicMeters { precision } => CoreVolumeFormat::CubicMeters { precision },
             VolumeFormat::Gallons { precision } => CoreVolumeFormat::Gallons { precision },
             VolumeFormat::Liters { precision } => CoreVolumeFormat::Liters { precision },
+        }),
+        KeyEvent::ConvertAngle { format } => CoreKeyEvent::ConvertAngle(match format {
+            AngleFormat::DegMinSec => CoreAngleFormat::DegMinSec,
+            AngleFormat::DecimalDegrees { precision } => {
+                CoreAngleFormat::DecimalDegrees { precision }
+            }
         }),
         KeyEvent::CostPerUnit => CoreKeyEvent::CostPerUnit,
         KeyEvent::SetAngleMode { degrees } => CoreKeyEvent::SetAngleMode(degrees),

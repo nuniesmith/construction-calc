@@ -1,7 +1,7 @@
 //! Web assembly bindings for the calculator.
 
 use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey, MemoryOp};
-use calc_core::format::{AreaFormat, LengthFormat, VolumeFormat};
+use calc_core::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -40,6 +40,10 @@ enum WasmKey {
         precision: Option<u8>,
     },
     ConvertVolume {
+        format: String,
+        precision: Option<u8>,
+    },
+    ConvertAngle {
         format: String,
         precision: Option<u8>,
     },
@@ -228,6 +232,16 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
                 other => return Err(format!("unknown volume format {other}")),
             };
             KeyEvent::ConvertVolume(fmt)
+        }
+        WasmKey::ConvertAngle { format, precision } => {
+            let fmt = match format.as_str() {
+                "dms" | "deg_min_sec" => AngleFormat::DegMinSec,
+                "dd" | "decimal_degrees" | "deg" => AngleFormat::DecimalDegrees {
+                    precision: precision.unwrap_or(4),
+                },
+                other => return Err(format!("unknown angle format {other}")),
+            };
+            KeyEvent::ConvertAngle(fmt)
         }
         WasmKey::CostPerUnit => KeyEvent::CostPerUnit,
         WasmKey::SetAngleMode { degrees } => KeyEvent::SetAngleMode(degrees),

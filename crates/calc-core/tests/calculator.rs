@@ -357,3 +357,24 @@ fn angle_mode_survives_clear_all() {
         c.display_string()
     );
 }
+
+#[test]
+fn angle_display_toggles_between_dms_and_decimal_degrees() {
+    use calc_core::format::AngleFormat;
+
+    // atan(1) = 45°. The default display is sexagesimal D°M'S".
+    let mut c = typed(&[KeyEvent::Digit(1), KeyEvent::Function(FunctionKey::Atan)]);
+    assert_eq!(c.display_string(), "45\u{00B0} 0' 0\"");
+
+    // Switch the display to decimal degrees — same stored angle.
+    c.handle(KeyEvent::ConvertAngle(AngleFormat::DecimalDegrees {
+        precision: 4,
+    }))
+    .unwrap();
+    assert_eq!(c.display_string(), "45\u{00B0}");
+
+    // And back to D°M'S".
+    c.handle(KeyEvent::ConvertAngle(AngleFormat::DegMinSec))
+        .unwrap();
+    assert_eq!(c.display_string(), "45\u{00B0} 0' 0\"");
+}
