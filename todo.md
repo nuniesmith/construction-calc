@@ -104,11 +104,12 @@ having a Mac with Xcode.
    sheathing sheets, plates, headers (extend `/ez/studs` or a dedicated
    `/ez/framing`). Generalize the baluster math into an **equal-spacing
    on-center divider** usable for joists/pickets/studs.
-8. **[ ] Weight dimension** (pounds, kg, tons, metric tons). Needs a new
-   `Value::Weight` variant + format + convert key. Lower priority than the
-   above but a visible CMPro parity checkbox; rebar weight already wants
-   it. Doing it alongside the Area/Volume format work (#2) keeps the
-   "value formats" refactor to a single pass.
+8. **[x] Weight dimension** (pounds, kg, tons, metric tons). New
+   `Value::Weight` (exact pounds) + `WeightUnitKey` input keys
+   (`WeightUnit` event) + `WeightFormat` + `ConvertWeight`. Wired through
+   wasm + uniffi + CLI (`lb`/`kg`/`ton`/`tonne` + `wfmt`) + a `Wt` keypad
+   page + dimension-aware format strip. Integrates with cost-per-unit
+   ($/lb, $/ton). Conversions are exact (1 lb = 0.453 592 37 kg).
 
 ### Track B — iOS native (blocked on a Mac)
 

@@ -22,6 +22,9 @@ pub enum Value {
     /// A monetary amount in dollars (exact). Produced by the cost-per-unit
     /// function: `quantity × price-per-display-unit`.
     Money(Rational64),
+    /// A weight, stored as exact pounds. Entered via the weight unit keys
+    /// (lb / kg / ton / tonne) and displayed in the chosen `WeightFormat`.
+    Weight(Rational64),
 }
 
 /// The dimensional category of a [`Value`]. Lets a UI pick the right set of
@@ -37,6 +40,7 @@ pub enum Dimension {
     Volume,
     Angle,
     Money,
+    Weight,
 }
 
 impl Dimension {
@@ -50,6 +54,7 @@ impl Dimension {
             Dimension::Volume => "volume",
             Dimension::Angle => "angle",
             Dimension::Money => "money",
+            Dimension::Weight => "weight",
         }
     }
 }
@@ -71,6 +76,7 @@ impl Value {
             Value::Volume(r) => r.is_zero(),
             Value::Angle(a) => a.degrees().is_zero(),
             Value::Money(r) => r.is_zero(),
+            Value::Weight(r) => r.is_zero(),
         }
     }
 
@@ -83,6 +89,7 @@ impl Value {
             Value::Volume(_) => Dimension::Volume,
             Value::Angle(_) => Dimension::Angle,
             Value::Money(_) => Dimension::Money,
+            Value::Weight(_) => Dimension::Weight,
         }
     }
 
@@ -96,6 +103,7 @@ impl Value {
                 Ok(Value::Angle(Angle::from_degrees(a.degrees() + b.degrees())))
             }
             (Value::Money(a), Value::Money(b)) => Ok(Value::Money(a + b)),
+            (Value::Weight(a), Value::Weight(b)) => Ok(Value::Weight(a + b)),
             _ => Err(CalcError::TypeMismatch),
         }
     }
@@ -110,6 +118,7 @@ impl Value {
                 Ok(Value::Angle(Angle::from_degrees(a.degrees() - b.degrees())))
             }
             (Value::Money(a), Value::Money(b)) => Ok(Value::Money(a - b)),
+            (Value::Weight(a), Value::Weight(b)) => Ok(Value::Weight(a - b)),
             _ => Err(CalcError::TypeMismatch),
         }
     }
@@ -139,6 +148,10 @@ impl Value {
             (Value::Scalar(s), Value::Money(m)) | (Value::Money(m), Value::Scalar(s)) => {
                 Ok(Value::Money(m * s))
             }
+            // Scaling a weight by a count (e.g. 12 bars × 7.4 lb).
+            (Value::Scalar(s), Value::Weight(w)) | (Value::Weight(w), Value::Scalar(s)) => {
+                Ok(Value::Weight(w * s))
+            }
             _ => Err(CalcError::TypeMismatch),
         }
     }
@@ -161,6 +174,9 @@ impl Value {
             // Split a cost across a count, or take a ratio of two costs.
             (Value::Money(m), Value::Scalar(s)) => Ok(Value::Money(m / s)),
             (Value::Money(a), Value::Money(b)) => Ok(Value::Scalar(a / b)),
+            // Split a weight across a count, or take a ratio of two weights.
+            (Value::Weight(w), Value::Scalar(s)) => Ok(Value::Weight(w / s)),
+            (Value::Weight(a), Value::Weight(b)) => Ok(Value::Scalar(a / b)),
             _ => Err(CalcError::TypeMismatch),
         }
     }

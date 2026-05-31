@@ -16,8 +16,10 @@
 //!   `clear`, `ce`, `bs` → clear, clear-all, backspace
 //!   `convert <unit>` → change display mode
 
-use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey};
-use calc_core::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat};
+use calc_core::calculator::{
+    BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey, WeightUnitKey,
+};
+use calc_core::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat, WeightFormat};
 use std::io::{self, BufRead, Write};
 
 fn main() {
@@ -66,6 +68,7 @@ fn print_help() {
     println!("Tokens:");
     println!("  numbers: 12  0.5  3/8  5-1/2");
     println!("  units:   ft in yd m");
+    println!("  weight:  lb kg ton tonne  (tag the entered number as a weight)");
     println!("  ops:     + - * / =");
     println!("  rafter:  pitch rise run diag");
     println!("  state:   clear (= CE), clearall (= AC), bs (backspace)");
@@ -73,6 +76,7 @@ fn print_help() {
     println!("  area:    area <sqin|sqft|sqyd|sqm|acre>  (how an area result shows)");
     println!("  volume:  vol <cuin|cuft|cuyd|cum|gal|l>  (how a volume result shows)");
     println!("  angfmt:  afmt <dms|dd>  (angle display: D°M'S\" or decimal degrees)");
+    println!("  wgtfmt:  wfmt <lb|kg|ton|tonne>  (how a weight result shows)");
     println!("  angle:   angle <deg|rad>  (how trig keys read a plain number)");
     println!("  cost:    <qty> cost <price> =  (price per the shown unit -> $total)");
     println!("Example: 5 ft 6 in + 2 ft 7 in =");
@@ -98,6 +102,18 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                 .map_err(s)?,
             "m" => calc
                 .handle(KeyEvent::Unit(LengthUnitKey::Meters))
+                .map_err(s)?,
+            "lb" | "lbs" => calc
+                .handle(KeyEvent::WeightUnit(WeightUnitKey::Pounds))
+                .map_err(s)?,
+            "kg" => calc
+                .handle(KeyEvent::WeightUnit(WeightUnitKey::Kilograms))
+                .map_err(s)?,
+            "ton" => calc
+                .handle(KeyEvent::WeightUnit(WeightUnitKey::Tons))
+                .map_err(s)?,
+            "tonne" => calc
+                .handle(KeyEvent::WeightUnit(WeightUnitKey::Tonnes))
                 .map_err(s)?,
             "pitch" => calc
                 .handle(KeyEvent::Function(FunctionKey::Pitch))
@@ -217,6 +233,19 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                     other => return Err(format!("unknown angle format {other}")),
                 };
                 calc.handle(KeyEvent::ConvertAngle(fmt)).map_err(s)?
+            }
+            "wfmt" => {
+                let target = tokens
+                    .next()
+                    .ok_or_else(|| "wfmt needs lb|kg|ton|tonne".to_string())?;
+                let fmt = match target {
+                    "lb" => WeightFormat::Pounds { precision: 2 },
+                    "kg" => WeightFormat::Kilograms { precision: 2 },
+                    "ton" => WeightFormat::Tons { precision: 3 },
+                    "tonne" => WeightFormat::Tonnes { precision: 3 },
+                    other => return Err(format!("unknown weight format {other}")),
+                };
+                calc.handle(KeyEvent::ConvertWeight(fmt)).map_err(s)?
             }
             "angle" => {
                 let target = tokens

@@ -1,7 +1,9 @@
 //! Web assembly bindings for the calculator.
 
-use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey, MemoryOp};
-use calc_core::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat};
+use calc_core::calculator::{
+    BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey, MemoryOp, WeightUnitKey,
+};
+use calc_core::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat, WeightFormat};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -26,6 +28,9 @@ enum WasmKey {
     Unit {
         unit: String,
     },
+    WeightUnit {
+        unit: String,
+    },
     Function {
         fun: String,
     },
@@ -44,6 +49,10 @@ enum WasmKey {
         precision: Option<u8>,
     },
     ConvertAngle {
+        format: String,
+        precision: Option<u8>,
+    },
+    ConvertWeight {
         format: String,
         precision: Option<u8>,
     },
@@ -160,6 +169,13 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
             "m" => LengthUnitKey::Meters,
             other => return Err(format!("unknown unit {other}")),
         }),
+        WasmKey::WeightUnit { unit } => KeyEvent::WeightUnit(match unit.as_str() {
+            "lb" | "lbs" | "pounds" => WeightUnitKey::Pounds,
+            "kg" | "kilograms" => WeightUnitKey::Kilograms,
+            "ton" | "tons" => WeightUnitKey::Tons,
+            "tonne" | "tonnes" | "t" => WeightUnitKey::Tonnes,
+            other => return Err(format!("unknown weight unit {other}")),
+        }),
         WasmKey::Function { fun } => KeyEvent::Function(match fun.as_str() {
             "pitch" => FunctionKey::Pitch,
             "rise" => FunctionKey::Rise,
@@ -242,6 +258,17 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
                 other => return Err(format!("unknown angle format {other}")),
             };
             KeyEvent::ConvertAngle(fmt)
+        }
+        WasmKey::ConvertWeight { format, precision } => {
+            let p = precision.unwrap_or(2);
+            let fmt = match format.as_str() {
+                "lb" | "pounds" => WeightFormat::Pounds { precision: p },
+                "kg" | "kilograms" => WeightFormat::Kilograms { precision: p },
+                "ton" | "tons" => WeightFormat::Tons { precision: p },
+                "tonne" | "tonnes" | "t" => WeightFormat::Tonnes { precision: p },
+                other => return Err(format!("unknown weight format {other}")),
+            };
+            KeyEvent::ConvertWeight(fmt)
         }
         WasmKey::CostPerUnit => KeyEvent::CostPerUnit,
         WasmKey::SetAngleMode { degrees } => KeyEvent::SetAngleMode(degrees),
