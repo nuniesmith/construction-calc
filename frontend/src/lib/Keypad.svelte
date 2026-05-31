@@ -90,10 +90,10 @@
     { label: 'Feet', helpId: 'ft', key: { type: 'unit', unit: 'ft' }, style: 'unit' },
     { label: 'Inch', helpId: 'in', key: { type: 'unit', unit: 'in' }, style: 'unit' },
     { label: 'm', helpId: 'm', key: { type: 'unit', unit: 'm' }, style: 'unit' },
-    // Two filler cells to keep the 6-wide grid aligned after mm/cm were
-    // removed. Use the format strip above the display to pick m / yd /
-    // decimal feet / fraction resolution.
-    { label: '', style: 'unit', span: 1 },
+    // Cost-per-unit: prices the current value by whatever unit it's showing
+    // ($/ft, $/sq ft, $/cu yd, $/each). One filler remains to keep the
+    // 6-wide grid aligned; the format strip above picks the display unit.
+    { label: 'Cost', helpId: 'cost', key: { type: 'costPerUnit' }, style: 'fn' },
     { label: '', style: 'unit', span: 1 },
 
     { label: 'C', helpId: 'c', key: { type: 'clear' }, style: 'ctrl' },

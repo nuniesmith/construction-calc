@@ -130,6 +130,7 @@ pub enum Dimension {
     Area,
     Volume,
     Angle,
+    Money,
 }
 
 #[derive(uniffi::Enum, Clone, Debug)]
@@ -150,6 +151,10 @@ pub enum KeyEvent {
     Function {
         function: FunctionKey,
     },
+    /// Begin a cost-per-unit calculation: the current value is the quantity,
+    /// the next entered number is the price per its current display unit, and
+    /// `Equals` yields the total as money.
+    CostPerUnit,
     Convert {
         format: LengthFormat,
     },
@@ -337,6 +342,7 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             VolumeFormat::Gallons { precision } => CoreVolumeFormat::Gallons { precision },
             VolumeFormat::Liters { precision } => CoreVolumeFormat::Liters { precision },
         }),
+        KeyEvent::CostPerUnit => CoreKeyEvent::CostPerUnit,
         KeyEvent::SetAngleMode { degrees } => CoreKeyEvent::SetAngleMode(degrees),
         KeyEvent::Memory { op } => CoreKeyEvent::Memory(match op {
             MemoryOp::Store { slot } => CoreMemOp::Store(slot),
@@ -359,5 +365,6 @@ fn dimension_from_core(d: CoreDimension) -> Dimension {
         CoreDimension::Area => Dimension::Area,
         CoreDimension::Volume => Dimension::Volume,
         CoreDimension::Angle => Dimension::Angle,
+        CoreDimension::Money => Dimension::Money,
     }
 }

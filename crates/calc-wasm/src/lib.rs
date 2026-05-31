@@ -29,6 +29,7 @@ enum WasmKey {
     Function {
         fun: String,
     },
+    CostPerUnit,
     Convert {
         format: String,
         denom: Option<u32>,
@@ -228,6 +229,7 @@ fn decode_key(k: WasmKey) -> Result<KeyEvent, String> {
             };
             KeyEvent::ConvertVolume(fmt)
         }
+        WasmKey::CostPerUnit => KeyEvent::CostPerUnit,
         WasmKey::SetAngleMode { degrees } => KeyEvent::SetAngleMode(degrees),
         WasmKey::Memory { op, slot } => {
             let s = slot.unwrap_or(0);

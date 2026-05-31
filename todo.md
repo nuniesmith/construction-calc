@@ -72,18 +72,17 @@ having a Mac with Xcode.
 
 1. **[x] Angle mode (degrees/radians)** — landed in PR #13. Everything
    below builds on it.
-2. **[ ] Area & Volume display formats + convert keys.** *Biggest real
-   engine gap.* Add `AreaFormat` (in², ft², yd², acres) and `VolumeFormat`
-   (in³, ft³, yd³, gallons, liters), a `Convert`-style `KeyEvent` for
-   each, and `display_string` support. Wire through wasm + uniffi + CLI +
-   web format strip. This makes `10' × 12' = 120 sq ft` and
-   `slab = 1.23 cu yd` work in the *main* calculator, not just the EZ
-   forms (which currently shadow the conversion in JS). Do this **before**
-   building out the Swift UI — it changes the binding surface.
-3. **[ ] Cost-per-unit as a first-class engine function.** Today it's a
-   board-feet-only field. Generalize to `$/unit × quantity = $total` over
-   any dimension (linear ft, ft², yd³, each). Essential for an
-   "estimating" app and a frequent CMPro use case.
+2. **[x] Area & Volume display formats + convert keys** (PR #15).
+   `AreaFormat` (in²/ft²/yd²/m²/acres) and `VolumeFormat`
+   (in³/ft³/yd³/m³/gal/L) with exact rational conversion, `ConvertArea` /
+   `ConvertVolume` events, and a `dimension` snapshot tag. Wired through
+   wasm + uniffi + CLI + the dimension-aware web format strip. `10' × 12'`
+   now shows `120 sq ft` in the main calculator.
+3. **[x] Cost-per-unit as a first-class engine function.** New
+   `Value::Money` + `KeyEvent::CostPerUnit`: `price × quantity-in-shown-
+   unit = $total` over any dimension ($/ft, $/sq ft, $/cu yd, $/each).
+   Wired through wasm + uniffi + CLI (`cost`) + a web `Cost` key. Replaces
+   the board-feet-only field.
 4. **[ ] dms ↔ deg angle display toggle.** `Angle` already decomposes to
    DMS; add an angle display mode (decimal degrees vs D°M'S") + a toggle
    key. Pairs naturally with the now-wired angle mode from PR #13.
@@ -139,9 +138,10 @@ Expanded detail for the Track A items above plus the smaller polish.
 - [x] **Board feet** EZ Calc form with optional cost-per-bf.
 - [x] **Memory keys** (MS, MR, M+, MC, MC-All) on a "Mem" keypad tab.
 - [x] **Angle mode (degrees/radians)** — wired end to end in **PR #13**.
-- [ ] **Area & Volume display formats + convert** — see §1.2. The headline
-      engine gap: `Value::Area`/`Value::Volume` only render in²/in³ today.
-- [ ] **Cost-per-unit** as a first-class engine function — see §1.3.
+- [x] **Area & Volume display formats + convert** (PR #15) — ft²/yd²/acres,
+      cu yd/gal/L in the main calculator, with a dimension-aware strip.
+- [x] **Cost-per-unit** first-class engine function — `Value::Money` +
+      `CostPerUnit`; prices by the shown unit ($/ft, $/sq ft, $/cu yd).
 - [ ] **dms ↔ deg** angle display toggle — see §1.4.
 - [ ] **Save/share tape** — download button (web) + Share Sheet (iOS).
 - [ ] **Compound miter** end-to-end verification — see §1.6.
@@ -166,10 +166,8 @@ gaps are engine-complete and just need a button + help text.
 - [x] Yards
 - [x] `Value::Area` / `Value::Volume` types with dimension promotion
       (Length² → Area, Length³ → Volume) — **engine done**
-- [ ] **Area display formats** (in², ft², yd², acres) + convert key — the
-      types exist; only the formatter/convert event is missing
-- [ ] **Volume display formats** (in³, ft³, yd³ for concrete, gallons,
-      liters) + convert key
+- [x] **Area display formats** (in²/ft²/yd²/m²/acres) + convert key (PR #15)
+- [x] **Volume display formats** (in³/ft³/yd³/m³/gal/L) + convert key (PR #15)
 - [ ] **Weight** dimension: pounds, kilograms, tons, metric tons
       (`Value::Weight` + format + convert)
 
@@ -196,7 +194,8 @@ gaps are engine-complete and just need a button + help text.
       generalized form of the baluster math
 - [ ] **Sheathing sheets, plates, headers** — extend `/ez/studs` or add a
       dedicated framing form
-- [ ] **Cost-per-unit** estimating across any dimension (§1.3)
+- [x] **Cost-per-unit** estimating across any dimension — `Value::Money` +
+      `CostPerUnit`, priced by the shown unit
 
 ### UI / UX
 

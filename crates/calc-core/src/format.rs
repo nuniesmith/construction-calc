@@ -151,12 +151,11 @@ impl VolumeFormat {
     }
 }
 
-/// Render an area (exact square inches) in the chosen unit.
-pub fn format_area(sq_in: Rational64, fmt: AreaFormat) -> String {
-    // Square inches per one target unit — all exact. 1 in = 25.4 mm, so
-    // 1 m = 5000/127 in and 1 m² = (5000/127)² = 25_000_000/16_129 in².
-    // 1 acre = 43_560 ft² = 6_272_640 in².
-    let (per_unit, precision, suffix) = match fmt {
+// Square inches per one target unit, plus precision + suffix. All exact:
+// 1 in = 25.4 mm, so 1 m = 5000/127 in and 1 m² = 25_000_000/16_129 in².
+// 1 acre = 43_560 ft² = 6_272_640 in².
+fn area_parts(fmt: AreaFormat) -> (Rational64, u8, &'static str) {
+    match fmt {
         AreaFormat::SquareInches { precision } => (Rational64::from_integer(1), precision, "sq in"),
         AreaFormat::SquareFeet { precision } => (Rational64::from_integer(144), precision, "sq ft"),
         AreaFormat::SquareYards { precision } => {
@@ -166,7 +165,19 @@ pub fn format_area(sq_in: Rational64, fmt: AreaFormat) -> String {
             (Rational64::new(25_000_000, 16_129), precision, "sq m")
         }
         AreaFormat::Acres { precision } => (Rational64::from_integer(6_272_640), precision, "ac"),
-    };
+    }
+}
+
+/// The numeric magnitude of an area (exact square inches) in the chosen
+/// unit, without the suffix. Used for pricing `$/unit × quantity`.
+pub fn area_magnitude(sq_in: Rational64, fmt: AreaFormat) -> Rational64 {
+    let (per_unit, _, _) = area_parts(fmt);
+    sq_in / per_unit
+}
+
+/// Render an area (exact square inches) in the chosen unit.
+pub fn format_area(sq_in: Rational64, fmt: AreaFormat) -> String {
+    let (per_unit, precision, suffix) = area_parts(fmt);
     format!(
         "{} {}",
         rational_to_decimal_string(sq_in / per_unit, precision),
@@ -174,12 +185,11 @@ pub fn format_area(sq_in: Rational64, fmt: AreaFormat) -> String {
     )
 }
 
-/// Render a volume (exact cubic inches) in the chosen unit.
-pub fn format_volume(cu_in: Rational64, fmt: VolumeFormat) -> String {
-    // Cubic inches per one target unit — all exact. 1 m³ = (5000/127)³ =
-    // 125_000_000_000/2_048_383 in³. 1 US gallon = 231 in³. 1 L = 1000 cm³
-    // and 1 cm = 50/127 in, so 1 L = 125_000_000/2_048_383 in³.
-    let (per_unit, precision, suffix) = match fmt {
+// Cubic inches per one target unit, plus precision + suffix. All exact:
+// 1 m³ = (5000/127)³ = 125_000_000_000/2_048_383 in³. 1 US gallon = 231 in³.
+// 1 cm = 50/127 in, so 1 L = 1000 cm³ = 125_000_000/2_048_383 in³.
+fn volume_parts(fmt: VolumeFormat) -> (Rational64, u8, &'static str) {
+    match fmt {
         VolumeFormat::CubicInches { precision } => {
             (Rational64::from_integer(1), precision, "cu in")
         }
@@ -198,12 +208,35 @@ pub fn format_volume(cu_in: Rational64, fmt: VolumeFormat) -> String {
         VolumeFormat::Liters { precision } => {
             (Rational64::new(125_000_000, 2_048_383), precision, "L")
         }
-    };
+    }
+}
+
+/// The numeric magnitude of a volume (exact cubic inches) in the chosen
+/// unit, without the suffix. Used for pricing `$/unit × quantity`.
+pub fn volume_magnitude(cu_in: Rational64, fmt: VolumeFormat) -> Rational64 {
+    let (per_unit, _, _) = volume_parts(fmt);
+    cu_in / per_unit
+}
+
+/// Render a volume (exact cubic inches) in the chosen unit.
+pub fn format_volume(cu_in: Rational64, fmt: VolumeFormat) -> String {
+    let (per_unit, precision, suffix) = volume_parts(fmt);
     format!(
         "{} {}",
         rational_to_decimal_string(cu_in / per_unit, precision),
         suffix
     )
+}
+
+/// Render a money amount in dollars, always with two decimal places and a
+/// leading `$` (sign before the symbol: `-$5.00`).
+pub fn format_money(dollars: Rational64) -> String {
+    let cents = (dollars * Rational64::from_integer(100))
+        .round()
+        .to_integer();
+    let sign = if cents < 0 { "-" } else { "" };
+    let cents = cents.abs();
+    format!("{}${}.{:02}", sign, cents / 100, cents % 100)
 }
 
 pub fn format_length(length: &Length, fmt: LengthFormat) -> String {

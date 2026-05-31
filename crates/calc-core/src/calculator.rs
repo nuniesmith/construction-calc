@@ -84,6 +84,10 @@ pub enum KeyEvent {
     Equals,
     Unit(LengthUnitKey),
     Function(FunctionKey),
+    /// Begin a cost-per-unit calculation: the current value becomes the
+    /// quantity, the next entered number is the price per the quantity's
+    /// current display unit, and `=` yields the total as money.
+    CostPerUnit,
     Convert(LengthFormat),
     /// Switch how an area result is displayed (sq in / ft / yd / m, acres).
     ConvertArea(AreaFormat),
@@ -274,6 +278,9 @@ pub struct Calculator {
     entry: EntryBuffer,
     pending: Option<(Value, BinaryOp)>,
     last_op: Option<(BinaryOp, Value)>,
+    /// Set by `CostPerUnit`: the quantity awaiting a price. When `=` lands
+    /// with this set, the entered scalar is the price-per-display-unit.
+    pending_cost: Option<Value>,
 
     rafter: PartialRafter,
     compound_miter: PartialCompoundMiter,
@@ -301,6 +308,7 @@ impl Calculator {
             entry: EntryBuffer::default(),
             pending: None,
             last_op: None,
+            pending_cost: None,
             rafter: PartialRafter::default(),
             compound_miter: PartialCompoundMiter::default(),
             tape: Tape::default(),
@@ -330,6 +338,7 @@ impl Calculator {
             KeyEvent::Op(op) => self.commit_op(op)?,
             KeyEvent::Equals => self.commit_equals()?,
             KeyEvent::Function(f) => self.handle_function(f)?,
+            KeyEvent::CostPerUnit => self.commit_cost()?,
             KeyEvent::Convert(fmt) => self.convert_display(fmt)?,
             KeyEvent::ConvertArea(fmt) => {
                 self.mode.default_area_format = fmt.validate().map_err(CalcError::Parse)?
@@ -414,6 +423,21 @@ impl Calculator {
 
     fn commit_equals(&mut self) -> Result<(), CalcError> {
         let current = self.commit_current_value()?;
+        // A pending cost binds tighter than a binary op: the just-entered
+        // scalar is the price, so compute the money subtotal first, then fold
+        // it into any pending op (`$20 + 5 cost 3` = $35). The repeat-equals
+        // (last_op) path is deliberately skipped for a cost.
+        if let Some(quantity) = self.pending_cost.take() {
+            let subtotal = self.apply_cost(quantity, current)?;
+            let result = match self.pending.take() {
+                Some((lhs, op)) => apply_op(lhs, op, subtotal)?,
+                None => subtotal,
+            };
+            self.last_op = None;
+            self.display = result;
+            self.tape.push(TapeEntry::Result(result));
+            return Ok(());
+        }
         let result = match self.pending.take() {
             Some((lhs, op)) => {
                 self.last_op = Some((op, current));
@@ -427,6 +451,47 @@ impl Calculator {
         self.display = result;
         self.tape.push(TapeEntry::Result(result));
         Ok(())
+    }
+
+    /// Start a cost-per-unit calculation: stash the current value as the
+    /// quantity and await a price. Any pending binary op is left intact and
+    /// applied to the money subtotal at `=` (cost binds tighter). To price a
+    /// running sum, press `=` first, then the cost key.
+    fn commit_cost(&mut self) -> Result<(), CalcError> {
+        let quantity = self.commit_current_value()?;
+        self.display = quantity;
+        self.pending_cost = Some(quantity);
+        Ok(())
+    }
+
+    /// Total cost = price × the quantity expressed in its *current display
+    /// unit*, so a price reads as dollars-per-what-you-see ($/ft, $/sq ft,
+    /// $/cu yd, $/each). The price must be a plain scalar.
+    fn apply_cost(&self, quantity: Value, price: Value) -> Result<Value, CalcError> {
+        let price = match price {
+            Value::Scalar(r) => r,
+            _ => return Err(CalcError::Domain("price must be a plain number".into())),
+        };
+        let qty = self.magnitude_in_display_unit(quantity)?;
+        Ok(Value::Money(qty * price))
+    }
+
+    fn magnitude_in_display_unit(&self, v: Value) -> Result<Rational64, CalcError> {
+        Ok(match v {
+            Value::Scalar(r) => r,
+            Value::Length(l) => match self.mode.default_length_format {
+                LengthFormat::FeetInchFraction { .. } | LengthFormat::DecimalFeet { .. } => {
+                    l.feet()
+                }
+                LengthFormat::DecimalInches { .. } => l.inches(),
+                LengthFormat::Yards { .. } => l.yards(),
+                LengthFormat::Meters { .. } => l.meters(),
+            },
+            Value::Area(r) => crate::format::area_magnitude(r, self.mode.default_area_format),
+            Value::Volume(r) => crate::format::volume_magnitude(r, self.mode.default_volume_format),
+            Value::Angle(_) => return Err(CalcError::Domain("can't price an angle".into())),
+            Value::Money(_) => return Err(CalcError::Domain("already a cost".into())),
+        })
     }
 
     fn handle_function(&mut self, f: FunctionKey) -> Result<(), CalcError> {
@@ -597,6 +662,7 @@ impl Calculator {
             Value::Area(r) => crate::format::format_area(r, self.mode.default_area_format),
             Value::Volume(r) => crate::format::format_volume(r, self.mode.default_volume_format),
             Value::Angle(a) => a.to_string(),
+            Value::Money(r) => crate::format::format_money(r),
         }
     }
 
