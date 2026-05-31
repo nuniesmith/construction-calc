@@ -198,7 +198,8 @@ gaps are engine-complete and just need a button + help text.
 - [x] Baluster spacing — `/ez/baluster`, enforces IRC 4" sphere code
 - [x] Roofing bundles + footprint × pitch (`/ez/roofing`); stud count
       (`/ez/studs`)
-- [ ] Column / cone **lateral surface area** (we compute volume only)
+- [x] Column / cone **lateral surface area** — `concrete::{column,cone}_lateral_area`,
+      surfaced in `/ez/concrete` (form/wrap material)
 - [x] **Equal-spacing on-center divider** (joists, pickets, fences) —
       `/ez/spacing`, generalized from the baluster math (max-gap + OC modes)
 - [x] **Sheathing sheets, plates, headers** — `/ez/framing`

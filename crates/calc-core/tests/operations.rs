@@ -243,3 +243,42 @@ fn cone_volume_is_one_third_of_cylinder() {
         (*cyl.numer() as f64 / *cyl.denom() as f64) / (*cone.numer() as f64 / *cone.denom() as f64);
     assert!((ratio - 3.0).abs() < 1e-3);
 }
+
+#[test]
+fn column_lateral_area_matches_pi_d_h() {
+    // 12" diameter × 8' (96") tall: lateral = π × 12 × 96 = 3619.11 sq in.
+    let a = concrete::column_lateral_area(
+        Length::from_inches(Rational64::from_integer(12)),
+        Length::from_feet_int(8),
+    )
+    .unwrap();
+    let f = *a.numer() as f64 / *a.denom() as f64;
+    let expected = std::f64::consts::PI * 12.0 * 96.0;
+    assert!((f - expected).abs() < 0.01, "got {f}, expected {expected}");
+}
+
+#[test]
+fn cone_lateral_area_uses_slant_height() {
+    // 6" radius (12" dia), 8" tall → slant = √(36+64) = 10.
+    // lateral = π × r × ℓ = π × 6 × 10 = 188.4956 sq in.
+    let a = concrete::cone_lateral_area(
+        Length::from_inches(Rational64::from_integer(12)),
+        Length::from_inches(Rational64::from_integer(8)),
+    )
+    .unwrap();
+    let f = *a.numer() as f64 / *a.denom() as f64;
+    let expected = std::f64::consts::PI * 6.0 * 10.0;
+    assert!((f - expected).abs() < 0.01, "got {f}, expected {expected}");
+}
+
+#[test]
+fn lateral_area_rejects_nonpositive() {
+    assert!(concrete::column_lateral_area(Length::ZERO, Length::from_feet_int(8)).is_err());
+    assert!(
+        concrete::cone_lateral_area(
+            Length::from_inches(Rational64::from_integer(12)),
+            Length::ZERO
+        )
+        .is_err()
+    );
+}
