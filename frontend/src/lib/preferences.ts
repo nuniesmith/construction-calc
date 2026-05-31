@@ -97,3 +97,12 @@ export function preferencesToConvertKey(p: Preferences): Key {
       return { type: 'convert', format: 'yards', precision: 4 };
   }
 }
+
+/**
+ * Translate the angle preference into the engine `SetAngleMode` event.
+ * Sent alongside `preferencesToConvertKey` at launch so trig keys honour
+ * the stored degrees/radians choice.
+ */
+export function preferencesToAngleModeKey(p: Preferences): Key {
+  return { type: 'setAngleMode', degrees: p.angleInDegrees };
+}

@@ -35,18 +35,17 @@ The architecture is in good shape and the discipline is holding:
 
 **Tests (all green as of this review):**
 
-- **75 Rust tests** on `main` (71 `calc-core` + 4 `calc-uniffi`).
-  Rises to **78** once PR #13 lands (+2 core, +1 uniffi).
-- **38 frontend TypeScript tests** (40 with PR #13).
+- **78 Rust tests** (73 `calc-core` + 5 `calc-uniffi`) — includes the
+  angle-mode coverage from PR #13.
+- **40 frontend TypeScript tests**.
 - **CI**: 4 jobs — engine (fmt + clippy + test), wasm build, frontend
   (typecheck + vitest + build), docker image — plus GitGuardian. All
   passing. Keep this discipline; App Review rewards crash-never apps.
 
-**In flight — PR #13 (`claude/gracious-hypatia-q6xRI`, draft, CI green):**
-Wires the degrees/radians **angle-mode** preference end to end
+**Recently landed — angle mode (PR #13):** the degrees/radians
+**angle-mode** preference is now wired end to end
 (`KeyEvent::SetAngleMode(bool)` → core → wasm → uniffi → CLI → web →
-iOS). This closes the one real engine gap found while scaffolding iOS.
-**It's ready — mark it ready-for-review and merge it first.**
+iOS). This closed the one real engine gap found while scaffolding iOS.
 
 **Corrections to the previous roadmap (things that were already done but
 listed as TODO):**
@@ -71,8 +70,8 @@ having a Mac with Xcode.
 
 ### Track A — engine + web (do now, no Mac required)
 
-1. **[~] Land PR #13 (angle mode).** Mark ready, merge. Everything below
-   assumes it's in.
+1. **[x] Angle mode (degrees/radians)** — landed in PR #13. Everything
+   below builds on it.
 2. **[ ] Area & Volume display formats + convert keys.** *Biggest real
    engine gap.* Add `AreaFormat` (in², ft², yd², acres) and `VolumeFormat`
    (in³, ft³, yd³, gallons, liters), a `Convert`-style `KeyEvent` for
@@ -139,7 +138,7 @@ Expanded detail for the Track A items above plus the smaller polish.
       machine so the keypad can drive them directly the way Rafter does.
 - [x] **Board feet** EZ Calc form with optional cost-per-bf.
 - [x] **Memory keys** (MS, MR, M+, MC, MC-All) on a "Mem" keypad tab.
-- [~] **Angle mode (degrees/radians)** — wired end to end in **PR #13**.
+- [x] **Angle mode (degrees/radians)** — wired end to end in **PR #13**.
 - [ ] **Area & Volume display formats + convert** — see §1.2. The headline
       engine gap: `Value::Area`/`Value::Volume` only render in²/in³ today.
 - [ ] **Cost-per-unit** as a first-class engine function — see §1.3.

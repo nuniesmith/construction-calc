@@ -33,11 +33,7 @@ struct PreferencesView: View {
                 } header: {
                     Text("Angles")
                 } footer: {
-                    // NOTE: stored for parity with the web app, but the engine
-                    // currently has no KeyEvent to switch angle mode at
-                    // runtime (it defaults to degrees). Wiring this up needs a
-                    // new engine event + a calc-uniffi binding — see todo.md.
-                    Text("Degrees is the engine default. Radian support is planned.")
+                    Text("Off interprets a plain number as radians when you press sin / cos / tan.")
                 }
 
                 Section {
@@ -55,6 +51,7 @@ struct PreferencesView: View {
             // settings change.
             .onChange(of: denom) { _, _ in vm.reapplyDisplayPreference() }
             .onChange(of: format) { _, _ in vm.reapplyDisplayPreference() }
+            .onChange(of: angleInDegrees) { _, newValue in vm.setAngleMode(degrees: newValue) }
         }
     }
 
@@ -63,5 +60,6 @@ struct PreferencesView: View {
         format = Preferences.defaults.lengthFormat.rawValue
         angleInDegrees = Preferences.defaults.angleInDegrees
         vm.reapplyDisplayPreference()
+        vm.setAngleMode(degrees: angleInDegrees)
     }
 }

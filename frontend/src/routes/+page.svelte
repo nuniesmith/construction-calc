@@ -8,7 +8,11 @@
   import HelpOverlay from '$lib/HelpOverlay.svelte';
   import { calc } from '$lib/calc';
   import { bindKeyboard } from '$lib/keyboard';
-  import { loadPreferences, preferencesToConvertKey } from '$lib/preferences';
+  import {
+    loadPreferences,
+    preferencesToConvertKey,
+    preferencesToAngleModeKey
+  } from '$lib/preferences';
 
   let ready = false;
   let initError: string | null = null;
@@ -23,6 +27,7 @@
         // the first render already shows the chosen format / resolution.
         const prefs = loadPreferences();
         calc.send(preferencesToConvertKey(prefs));
+        calc.send(preferencesToAngleModeKey(prefs));
         ready = true;
         teardown = bindKeyboard(calc);
       } catch (e) {

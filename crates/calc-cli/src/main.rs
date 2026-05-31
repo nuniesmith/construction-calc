@@ -70,6 +70,7 @@ fn print_help() {
     println!("  rafter:  pitch rise run diag");
     println!("  state:   clear (= CE), clearall (= AC), bs (backspace)");
     println!("  display: convert <feet|inch|m|yd>  (feet rounds to 1/4, 1/8, or 1/16)");
+    println!("  angle:   angle <deg|rad>  (how trig keys read a plain number)");
     println!("Example: 5 ft 6 in + 2 ft 7 in =");
 }
 
@@ -159,6 +160,17 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                     other => return Err(format!("unknown convert target {other}")),
                 };
                 calc.handle(KeyEvent::Convert(fmt)).map_err(s)?
+            }
+            "angle" => {
+                let target = tokens
+                    .next()
+                    .ok_or_else(|| "angle needs deg|rad".to_string())?;
+                let degrees = match target {
+                    "deg" | "degrees" => true,
+                    "rad" | "radians" => false,
+                    other => return Err(format!("unknown angle mode {other}")),
+                };
+                calc.handle(KeyEvent::SetAngleMode(degrees)).map_err(s)?
             }
             tok => type_number(calc, tok)?,
         }

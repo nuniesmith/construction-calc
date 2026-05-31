@@ -312,3 +312,48 @@ fn percent_as_rhs() {
     c.handle(KeyEvent::Equals).unwrap();
     assert_eq!(c.display, Value::Scalar(Rational64::from_integer(210)));
 }
+
+#[test]
+fn angle_mode_switches_trig_interpretation() {
+    use calc_core::calculator::FunctionKey;
+
+    // Default mode is degrees: sin(30°) = 0.5 exactly.
+    let c = typed(&[
+        KeyEvent::Digit(3),
+        KeyEvent::Digit(0),
+        KeyEvent::Function(FunctionKey::Sin),
+    ]);
+    assert_eq!(c.display_string(), "0.5");
+
+    // Switch to radians: sin(30 rad) ≈ -0.988032.
+    let c = typed(&[
+        KeyEvent::SetAngleMode(false),
+        KeyEvent::Digit(3),
+        KeyEvent::Digit(0),
+        KeyEvent::Function(FunctionKey::Sin),
+    ]);
+    assert!(
+        c.display_string().starts_with("-0.988"),
+        "expected sin(30 rad) ≈ -0.988, got {}",
+        c.display_string()
+    );
+}
+
+#[test]
+fn angle_mode_survives_clear_all() {
+    use calc_core::calculator::FunctionKey;
+
+    // SetAngleMode lives in Mode, which ClearAll preserves.
+    let c = typed(&[
+        KeyEvent::SetAngleMode(false),
+        KeyEvent::ClearAll,
+        KeyEvent::Digit(3),
+        KeyEvent::Digit(0),
+        KeyEvent::Function(FunctionKey::Sin),
+    ]);
+    assert!(
+        c.display_string().starts_with("-0.988"),
+        "radian mode should survive AC, got {}",
+        c.display_string()
+    );
+}

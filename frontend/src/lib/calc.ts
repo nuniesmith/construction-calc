@@ -32,6 +32,7 @@ export type Key =
   | { type: 'unit'; unit: Unit }
   | { type: 'function'; fun: FunctionKey }
   | { type: 'convert'; format: string; denom?: number; precision?: number }
+  | { type: 'setAngleMode'; degrees: boolean }
   | {
       type: 'memory';
       op: 'store' | 'recall' | 'add' | 'clear' | 'clear_all';

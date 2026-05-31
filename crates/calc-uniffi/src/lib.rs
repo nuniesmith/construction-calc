@@ -117,6 +117,10 @@ pub enum KeyEvent {
     Convert {
         format: LengthFormat,
     },
+    /// Set whether trig keys use degrees (`true`) or radians (`false`).
+    SetAngleMode {
+        degrees: bool,
+    },
     Memory {
         op: MemoryOp,
     },
@@ -270,6 +274,7 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             LengthFormat::Yards { precision } => CoreLengthFormat::Yards { precision },
             LengthFormat::Meters { precision } => CoreLengthFormat::Meters { precision },
         }),
+        KeyEvent::SetAngleMode { degrees } => CoreKeyEvent::SetAngleMode(degrees),
         KeyEvent::Memory { op } => CoreKeyEvent::Memory(match op {
             MemoryOp::Store { slot } => CoreMemOp::Store(slot),
             MemoryOp::Recall { slot } => CoreMemOp::Recall(slot),

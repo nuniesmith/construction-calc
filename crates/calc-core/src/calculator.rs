@@ -85,6 +85,9 @@ pub enum KeyEvent {
     Unit(LengthUnitKey),
     Function(FunctionKey),
     Convert(LengthFormat),
+    /// Set whether trig keys interpret/emit angles in degrees (`true`) or
+    /// radians (`false`). Mirrors a user preference; persists in `Mode`.
+    SetAngleMode(bool),
     Memory(MemoryOp),
     Backspace,
     Clear,
@@ -318,6 +321,7 @@ impl Calculator {
             KeyEvent::Equals => self.commit_equals()?,
             KeyEvent::Function(f) => self.handle_function(f)?,
             KeyEvent::Convert(fmt) => self.convert_display(fmt)?,
+            KeyEvent::SetAngleMode(degrees) => self.mode.angle_in_degrees = degrees,
             KeyEvent::Memory(m) => self.handle_memory(m)?,
             KeyEvent::Clear => {
                 self.entry.reset();

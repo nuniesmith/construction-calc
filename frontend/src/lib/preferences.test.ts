@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULTS,
   loadPreferences,
+  preferencesToAngleModeKey,
   preferencesToConvertKey,
   savePreferences
 } from './preferences';
@@ -64,5 +65,17 @@ describe('preferencesToConvertKey', () => {
   it('produces a yards key when yards chosen', () => {
     const k = preferencesToConvertKey({ ...DEFAULTS, defaultLengthFormat: 'yards' });
     expect(k).toEqual({ type: 'convert', format: 'yards', precision: 4 });
+  });
+});
+
+describe('preferencesToAngleModeKey', () => {
+  it('maps degrees to a setAngleMode key', () => {
+    const k = preferencesToAngleModeKey({ ...DEFAULTS, angleInDegrees: true });
+    expect(k).toEqual({ type: 'setAngleMode', degrees: true });
+  });
+
+  it('maps radians to a setAngleMode key', () => {
+    const k = preferencesToAngleModeKey({ ...DEFAULTS, angleInDegrees: false });
+    expect(k).toEqual({ type: 'setAngleMode', degrees: false });
   });
 });
