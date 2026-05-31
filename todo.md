@@ -100,10 +100,12 @@ having a Mac with Xcode.
    buttons — drive the full flow (enter 90° corner, 38° spring → confirm
    ~31.6° miter / ~33.9° bevel) on web and add an integration test if one
    is missing. Confirm it's a finished feature, not a stub.
-7. **[ ] Material-estimate gaps.** Add the remaining framing forms:
-   sheathing sheets, plates, headers (extend `/ez/studs` or a dedicated
-   `/ez/framing`). Generalize the baluster math into an **equal-spacing
-   on-center divider** usable for joists/pickets/studs.
+7. **[x] Material-estimate gaps.** Added `/ez/framing` (sheathing panels,
+   wall plates, headers) and `/ez/spacing` — a generalized equal-spacing
+   divider with both max-gap (pickets/balusters) and on-center
+   (joists/studs) modes. Unlike the older inline-math forms, the math is
+   extracted into unit-tested `$lib/framing.ts` and `$lib/spacing.ts`
+   (16 new vitest tests).
 8. **[x] Weight dimension** (pounds, kg, tons, metric tons). New
    `Value::Weight` (exact pounds) + `WeightUnitKey` input keys
    (`WeightUnit` event) + `WeightFormat` + `ConvertWeight`. Wired through
@@ -151,9 +153,9 @@ Expanded detail for the Track A items above plus the smaller polish.
       with a format-strip toggle (`°′″` / `deg`).
 - [x] **Save/share tape** — web download + clipboard + Web Share API;
       iOS `ShareLink` (Markdown + JSON).
-- [ ] **Compound miter** end-to-end verification — see §1.6.
-- [ ] **Material estimates** — sheathing/plates/headers + generalized
-      equal-spacing divider — see §1.7.
+- [x] **Compound miter** end-to-end verification (PR #19) — see §1.6.
+- [x] **Material estimates** — `/ez/framing` (sheathing/plates/headers) +
+      `/ez/spacing` (generalized equal-spacing divider) — see §1.7.
 - [ ] **Service worker** for true offline support. The PWA currently
       relies on the browser HTTP cache; a service worker makes it work
       fully offline (and is a credible "works on a job site with no
@@ -197,10 +199,9 @@ gaps are engine-complete and just need a button + help text.
 - [x] Roofing bundles + footprint × pitch (`/ez/roofing`); stud count
       (`/ez/studs`)
 - [ ] Column / cone **lateral surface area** (we compute volume only)
-- [ ] **Equal-spacing on-center divider** (joists, pickets, fences) —
-      generalized form of the baluster math
-- [ ] **Sheathing sheets, plates, headers** — extend `/ez/studs` or add a
-      dedicated framing form
+- [x] **Equal-spacing on-center divider** (joists, pickets, fences) —
+      `/ez/spacing`, generalized from the baluster math (max-gap + OC modes)
+- [x] **Sheathing sheets, plates, headers** — `/ez/framing`
 - [x] **Cost-per-unit** estimating across any dimension — `Value::Money` +
       `CostPerUnit`, priced by the shown unit
 
