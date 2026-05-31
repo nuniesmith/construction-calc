@@ -2,19 +2,22 @@
   import { calc, type Key } from './calc';
 
   /**
-   * A small strip across the top of the display that lets the user pick
-   * how lengths render. Maps directly to KeyEvent::Convert on the engine.
+   * A small strip across the top of the display that lets the user pick how
+   * the current result renders. It is *dimension-aware*: it maps directly to
+   * KeyEvent::Convert for a length, KeyEvent::ConvertArea for an area, and
+   * KeyEvent::ConvertVolume for a volume — switching the button set to match
+   * whatever the engine currently holds (reported via `snapshot.dimension`).
    *
-   * The fraction buttons (1/4, 1/8, 1/16) double as rounding controls:
-   * they set the resolution at which sums of whole numbers and fractions
-   * are rendered. The internal value stays exact.
+   * The length fraction buttons (1/4, 1/8, 1/16) double as rounding controls:
+   * they set the resolution at which sums of whole numbers and fractions are
+   * rendered. The internal value stays exact.
    */
   interface FormatChoice {
     label: string;
     key: Key;
   }
 
-  const choices: FormatChoice[] = [
+  const lengthChoices: FormatChoice[] = [
     { label: '1/4"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 4 } },
     { label: '1/8"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 8 } },
     { label: '1/16"', key: { type: 'convert', format: 'feet_inch_fraction', denom: 16 } },
@@ -24,8 +27,50 @@
     { label: 'yd', key: { type: 'convert', format: 'yards', precision: 4 } }
   ];
 
-  // Default highlight matches the engine's default Mode (1/16").
+  const areaChoices: FormatChoice[] = [
+    { label: 'in²', key: { type: 'convertArea', format: 'sq_in', precision: 0 } },
+    { label: 'ft²', key: { type: 'convertArea', format: 'sq_ft', precision: 2 } },
+    { label: 'yd²', key: { type: 'convertArea', format: 'sq_yd', precision: 2 } },
+    { label: 'm²', key: { type: 'convertArea', format: 'sq_m', precision: 3 } },
+    { label: 'acre', key: { type: 'convertArea', format: 'acres', precision: 4 } }
+  ];
+
+  const volumeChoices: FormatChoice[] = [
+    { label: 'in³', key: { type: 'convertVolume', format: 'cu_in', precision: 0 } },
+    { label: 'ft³', key: { type: 'convertVolume', format: 'cu_ft', precision: 2 } },
+    { label: 'yd³', key: { type: 'convertVolume', format: 'cu_yd', precision: 2 } },
+    { label: 'm³', key: { type: 'convertVolume', format: 'cu_m', precision: 3 } },
+    { label: 'gal', key: { type: 'convertVolume', format: 'gallons', precision: 2 } },
+    { label: 'L', key: { type: 'convertVolume', format: 'liters', precision: 2 } }
+  ];
+
+  const snapshot = calc.snapshot;
+
+  // Scalar / angle have no unit conversion, so we keep showing the length
+  // strip (a length convert is a harmless no-op on a scalar display).
+  $: choices =
+    $snapshot.dimension === 'area'
+      ? areaChoices
+      : $snapshot.dimension === 'volume'
+        ? volumeChoices
+        : lengthChoices;
+
+  // The index highlighted by default per dimension — matches the engine's
+  // default Mode: length opens at 1/16" (index 2), area at ft² and volume at
+  // ft³ (index 1 of their sets).
+  const defaultActive: Record<string, number> = { area: 1, volume: 1 };
+
   let active = 2;
+  let shownDimension = $snapshot.dimension;
+  // When the result's dimension changes, reset the highlight to that set's
+  // default rather than carrying a stale index across sets. We only move the
+  // highlight here — the engine already renders in its default for the new
+  // dimension, so there's nothing to re-send.
+  $: if ($snapshot.dimension !== shownDimension) {
+    shownDimension = $snapshot.dimension;
+    active = defaultActive[$snapshot.dimension] ?? 2;
+  }
+
   function pick(i: number) {
     active = i;
     calc.send(choices[i].key);
@@ -33,7 +78,7 @@
 </script>
 
 <div class="strip" role="tablist" aria-label="Display format">
-  {#each choices as c, i}
+  {#each choices as c, i (c.label)}
     <button
       class:active={active === i}
       role="tab"

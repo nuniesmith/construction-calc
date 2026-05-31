@@ -68,6 +68,144 @@ impl LengthFormat {
     }
 }
 
+/// Display format for area results. Area is stored internally as exact
+/// square inches; each variant converts to the chosen unit (all conversion
+/// factors are exact) and renders to `precision` decimal places.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum AreaFormat {
+    SquareInches { precision: u8 },
+    SquareFeet { precision: u8 },
+    SquareYards { precision: u8 },
+    SquareMeters { precision: u8 },
+    Acres { precision: u8 },
+}
+
+impl AreaFormat {
+    fn precision(self) -> u8 {
+        match self {
+            AreaFormat::SquareInches { precision }
+            | AreaFormat::SquareFeet { precision }
+            | AreaFormat::SquareYards { precision }
+            | AreaFormat::SquareMeters { precision }
+            | AreaFormat::Acres { precision } => precision,
+        }
+    }
+
+    pub fn validate(self) -> Result<Self, ParseError> {
+        let p = self.precision();
+        if p > MAX_PRECISION {
+            Err(ParseError::InvalidPrecision(p))
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+/// Display format for volume results. Volume is stored internally as exact
+/// cubic inches; each variant converts to the chosen unit (all conversion
+/// factors are exact) and renders to `precision` decimal places.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum VolumeFormat {
+    CubicInches {
+        precision: u8,
+    },
+    CubicFeet {
+        precision: u8,
+    },
+    CubicYards {
+        precision: u8,
+    },
+    CubicMeters {
+        precision: u8,
+    },
+    /// US liquid gallons (231 in³ exactly).
+    Gallons {
+        precision: u8,
+    },
+    Liters {
+        precision: u8,
+    },
+}
+
+impl VolumeFormat {
+    fn precision(self) -> u8 {
+        match self {
+            VolumeFormat::CubicInches { precision }
+            | VolumeFormat::CubicFeet { precision }
+            | VolumeFormat::CubicYards { precision }
+            | VolumeFormat::CubicMeters { precision }
+            | VolumeFormat::Gallons { precision }
+            | VolumeFormat::Liters { precision } => precision,
+        }
+    }
+
+    pub fn validate(self) -> Result<Self, ParseError> {
+        let p = self.precision();
+        if p > MAX_PRECISION {
+            Err(ParseError::InvalidPrecision(p))
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+/// Render an area (exact square inches) in the chosen unit.
+pub fn format_area(sq_in: Rational64, fmt: AreaFormat) -> String {
+    // Square inches per one target unit — all exact. 1 in = 25.4 mm, so
+    // 1 m = 5000/127 in and 1 m² = (5000/127)² = 25_000_000/16_129 in².
+    // 1 acre = 43_560 ft² = 6_272_640 in².
+    let (per_unit, precision, suffix) = match fmt {
+        AreaFormat::SquareInches { precision } => (Rational64::from_integer(1), precision, "sq in"),
+        AreaFormat::SquareFeet { precision } => (Rational64::from_integer(144), precision, "sq ft"),
+        AreaFormat::SquareYards { precision } => {
+            (Rational64::from_integer(1296), precision, "sq yd")
+        }
+        AreaFormat::SquareMeters { precision } => {
+            (Rational64::new(25_000_000, 16_129), precision, "sq m")
+        }
+        AreaFormat::Acres { precision } => (Rational64::from_integer(6_272_640), precision, "ac"),
+    };
+    format!(
+        "{} {}",
+        rational_to_decimal_string(sq_in / per_unit, precision),
+        suffix
+    )
+}
+
+/// Render a volume (exact cubic inches) in the chosen unit.
+pub fn format_volume(cu_in: Rational64, fmt: VolumeFormat) -> String {
+    // Cubic inches per one target unit — all exact. 1 m³ = (5000/127)³ =
+    // 125_000_000_000/2_048_383 in³. 1 US gallon = 231 in³. 1 L = 1000 cm³
+    // and 1 cm = 50/127 in, so 1 L = 125_000_000/2_048_383 in³.
+    let (per_unit, precision, suffix) = match fmt {
+        VolumeFormat::CubicInches { precision } => {
+            (Rational64::from_integer(1), precision, "cu in")
+        }
+        VolumeFormat::CubicFeet { precision } => {
+            (Rational64::from_integer(1728), precision, "cu ft")
+        }
+        VolumeFormat::CubicYards { precision } => {
+            (Rational64::from_integer(46_656), precision, "cu yd")
+        }
+        VolumeFormat::CubicMeters { precision } => (
+            Rational64::new(125_000_000_000, 2_048_383),
+            precision,
+            "cu m",
+        ),
+        VolumeFormat::Gallons { precision } => (Rational64::from_integer(231), precision, "gal"),
+        VolumeFormat::Liters { precision } => {
+            (Rational64::new(125_000_000, 2_048_383), precision, "L")
+        }
+    };
+    format!(
+        "{} {}",
+        rational_to_decimal_string(cu_in / per_unit, precision),
+        suffix
+    )
+}
+
 pub fn format_length(length: &Length, fmt: LengthFormat) -> String {
     match fmt {
         LengthFormat::FeetInchFraction { denom } => format_feet_inch_fraction(length, denom),

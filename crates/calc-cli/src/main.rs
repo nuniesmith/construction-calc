@@ -17,7 +17,7 @@
 //!   `convert <unit>` → change display mode
 
 use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey};
-use calc_core::format::LengthFormat;
+use calc_core::format::{AreaFormat, LengthFormat, VolumeFormat};
 use std::io::{self, BufRead, Write};
 
 fn main() {
@@ -70,6 +70,8 @@ fn print_help() {
     println!("  rafter:  pitch rise run diag");
     println!("  state:   clear (= CE), clearall (= AC), bs (backspace)");
     println!("  display: convert <feet|inch|m|yd>  (feet rounds to 1/4, 1/8, or 1/16)");
+    println!("  area:    area <sqin|sqft|sqyd|sqm|acre>  (how an area result shows)");
+    println!("  volume:  vol <cuin|cuft|cuyd|cum|gal|l>  (how a volume result shows)");
     println!("  angle:   angle <deg|rad>  (how trig keys read a plain number)");
     println!("Example: 5 ft 6 in + 2 ft 7 in =");
 }
@@ -160,6 +162,35 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                     other => return Err(format!("unknown convert target {other}")),
                 };
                 calc.handle(KeyEvent::Convert(fmt)).map_err(s)?
+            }
+            "area" => {
+                let target = tokens
+                    .next()
+                    .ok_or_else(|| "area needs sqin|sqft|sqyd|sqm|acre".to_string())?;
+                let fmt = match target {
+                    "sqin" => AreaFormat::SquareInches { precision: 2 },
+                    "sqft" => AreaFormat::SquareFeet { precision: 2 },
+                    "sqyd" => AreaFormat::SquareYards { precision: 2 },
+                    "sqm" => AreaFormat::SquareMeters { precision: 4 },
+                    "acre" | "acres" => AreaFormat::Acres { precision: 4 },
+                    other => return Err(format!("unknown area target {other}")),
+                };
+                calc.handle(KeyEvent::ConvertArea(fmt)).map_err(s)?
+            }
+            "vol" | "volume" => {
+                let target = tokens
+                    .next()
+                    .ok_or_else(|| "vol needs cuin|cuft|cuyd|cum|gal|l".to_string())?;
+                let fmt = match target {
+                    "cuin" => VolumeFormat::CubicInches { precision: 2 },
+                    "cuft" => VolumeFormat::CubicFeet { precision: 2 },
+                    "cuyd" => VolumeFormat::CubicYards { precision: 2 },
+                    "cum" => VolumeFormat::CubicMeters { precision: 4 },
+                    "gal" | "gallons" => VolumeFormat::Gallons { precision: 2 },
+                    "l" | "liters" => VolumeFormat::Liters { precision: 2 },
+                    other => return Err(format!("unknown volume target {other}")),
+                };
+                calc.handle(KeyEvent::ConvertVolume(fmt)).map_err(s)?
             }
             "angle" => {
                 let target = tokens

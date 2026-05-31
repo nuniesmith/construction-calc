@@ -40,6 +40,6 @@ pub mod value;
 pub use angle::Angle;
 pub use calculator::{Calculator, KeyEvent};
 pub use error::{CalcError, ParseError};
-pub use format::LengthFormat;
+pub use format::{AreaFormat, LengthFormat, VolumeFormat};
 pub use length::Length;
-pub use value::Value;
+pub use value::{Dimension, Value};

@@ -110,3 +110,27 @@ fn set_angle_mode_switches_trig_through_the_bindings() {
         snap.display
     );
 }
+
+#[test]
+fn area_result_carries_dimension_and_converts_through_the_bindings() {
+    use calc_uniffi::{AreaFormat, Dimension};
+
+    // 10' × 12' = 120 sq ft by default, tagged as an Area dimension.
+    let calc = Calculator::new();
+    calc.handle(KeyEvent::Digit { value: 1 });
+    calc.handle(KeyEvent::Digit { value: 0 });
+    calc.handle(KeyEvent::Unit { unit: Unit::Feet });
+    calc.handle(KeyEvent::Op { op: Op::Mul });
+    calc.handle(KeyEvent::Digit { value: 1 });
+    calc.handle(KeyEvent::Digit { value: 2 });
+    calc.handle(KeyEvent::Unit { unit: Unit::Feet });
+    let snap = calc.handle(KeyEvent::Equals);
+    assert_eq!(snap.display, "120 sq ft");
+    assert_eq!(snap.dimension, Dimension::Area);
+
+    // Convert the live display to square yards.
+    let snap = calc.handle(KeyEvent::ConvertArea {
+        format: AreaFormat::SquareYards { precision: 2 },
+    });
+    assert_eq!(snap.display, "13.33 sq yd");
+}

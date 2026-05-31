@@ -32,6 +32,8 @@ export type Key =
   | { type: 'unit'; unit: Unit }
   | { type: 'function'; fun: FunctionKey }
   | { type: 'convert'; format: string; denom?: number; precision?: number }
+  | { type: 'convertArea'; format: string; precision?: number }
+  | { type: 'convertVolume'; format: string; precision?: number }
   | { type: 'setAngleMode'; degrees: boolean }
   | {
       type: 'memory';
@@ -45,6 +47,12 @@ export type Key =
 
 export interface Snapshot {
   display: string;
+  /**
+   * Dimensional category of the display value: 'scalar' | 'length' |
+   * 'area' | 'volume' | 'angle'. Lets the format strip show the matching
+   * unit controls without parsing `display`.
+   */
+  dimension: string;
   tape: unknown;
   error: string | null;
 }
@@ -69,6 +77,7 @@ export class Calc {
   private inner: WasmCalculator | null = null;
   public readonly snapshot: Writable<Snapshot> = writable({
     display: '0',
+    dimension: 'scalar',
     tape: { entries: [] },
     error: null
   });
@@ -78,6 +87,7 @@ export class Calc {
     this.inner = new mod.WasmCalculator();
     this.snapshot.set({
       display: this.inner.displayString(),
+      dimension: 'scalar',
       tape: { entries: [] },
       error: null
     });

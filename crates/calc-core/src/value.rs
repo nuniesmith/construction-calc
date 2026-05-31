@@ -21,6 +21,34 @@ pub enum Value {
     Angle(Angle),
 }
 
+/// The dimensional category of a [`Value`]. Lets a UI pick the right set of
+/// unit / format controls (length vs. area vs. volume) without parsing the
+/// formatted display string.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+pub enum Dimension {
+    Scalar,
+    Length,
+    Area,
+    Volume,
+    Angle,
+}
+
+impl Dimension {
+    /// Lowercase tag, matching the serde representation. Handy for the WASM
+    /// snapshot and the CLI.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Dimension::Scalar => "scalar",
+            Dimension::Length => "length",
+            Dimension::Area => "area",
+            Dimension::Volume => "volume",
+            Dimension::Angle => "angle",
+        }
+    }
+}
+
 // add/sub/mul/div take a `Result` and use dimension-aware promotion (e.g.
 // Length × Length = Area), so they can't be exact `std::ops::*` impls.
 // Allow the `should_implement_trait` lint that otherwise fires on the names.
@@ -37,6 +65,17 @@ impl Value {
             Value::Area(r) => r.is_zero(),
             Value::Volume(r) => r.is_zero(),
             Value::Angle(a) => a.degrees().is_zero(),
+        }
+    }
+
+    /// The dimensional category of this value.
+    pub fn dimension(&self) -> Dimension {
+        match self {
+            Value::Scalar(_) => Dimension::Scalar,
+            Value::Length(_) => Dimension::Length,
+            Value::Area(_) => Dimension::Area,
+            Value::Volume(_) => Dimension::Volume,
+            Value::Angle(_) => Dimension::Angle,
         }
     }
 
