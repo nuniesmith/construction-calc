@@ -3,10 +3,13 @@
 A construction-math calculator with exact-rational dimensional arithmetic.
 
 The engine is a pure Rust crate (`calc-core`) with no I/O and no UI
-dependencies. A WebAssembly wrapper (`calc-wasm`) drives a SvelteKit
-frontend that doubles as a PWA — installable on iOS / Android / desktop
-from the browser's "add to home screen" menu. A CLI (`calc-cli`) drives
-the engine from the terminal. A UniFFI wrapper crate (`calc-uniffi`)
+dependencies. It carries a tagged value through the display register —
+scalar, length, area, volume, angle, weight, or money — with
+dimension-aware promotion (length × length → area, length³ → volume).
+A WebAssembly wrapper (`calc-wasm`) drives a SvelteKit frontend that
+doubles as a PWA — installable on iOS / Android / desktop from the
+browser's "add to home screen" menu. A CLI (`calc-cli`) drives the
+engine from the terminal. A UniFFI wrapper crate (`calc-uniffi`)
 generates Swift / Kotlin bindings for the upcoming iOS app — same
 engine, native UI.
 
@@ -16,11 +19,13 @@ the web app.
 
 ## Why exact rationals?
 
-The display register holds an exact `Rational64` of inches, not an `f64`.
-That means `1/3 + 1/3 + 1/3 == 1` *exactly*, with no float drift. Framers
-checking stud layouts will trust the result. Trig is the unavoidable f64
-island — when its results feed back into a length, we reify by rounding
-to the user's display precision (default 1/64").
+A length holds an exact `Rational64` of inches, not an `f64`. That means
+`1/3 + 1/3 + 1/3 == 1` *exactly*, with no float drift. Framers checking
+stud layouts will trust the result. Areas, volumes, weights, and money
+are exact rationals too. Trig is the unavoidable f64 island — when its
+results feed back into a length, we reify by rounding onto a fine
+internal grid (1/64"); the *displayed* fraction resolution is a separate,
+user-chosen setting (1/4", 1/8", or 1/16", default 1/16").
 
 ## Layout
 
@@ -29,8 +34,10 @@ construction-calc/
 ├── crates/
 │   ├── calc-core/     pure-Rust engine + state machine + tests
 │   ├── calc-wasm/     wasm-bindgen wrapper for the web
+│   ├── calc-uniffi/   UniFFI wrapper → Swift / Kotlin bindings
 │   └── calc-cli/      terminal REPL
-└── frontend/          SvelteKit app, imports calc-wasm
+├── frontend/          SvelteKit app + /ez form-based calculators
+└── ios/               scaffolded SwiftUI app (built on a Mac)
 ```
 
 ## Build
@@ -49,7 +56,14 @@ cargo run -p calc-cli
 = 8' 1"
 > 6 pitch 10 ft run rise
 = 5'
+> 10 ft * 12 ft =        # length × length → area
+= 120 sq ft
+> 100 lb cost 0.5 =      # price by the shown unit ($/lb)
+= $50.00
 ```
+
+Type `help` in the REPL for the full token list (units, weights, rafter,
+trig, miter, area/volume/angle/weight display conversion, cost).
 
 ### Web app
 
@@ -104,22 +118,30 @@ tmpfs mounts so the read-only rootfs doesn't break it.
 
 ## Roadmap
 
-- [x] Exact `Length` arithmetic
-- [x] Format: feet-inch-fraction, decimal feet, decimal inches, meters, yards
+- [x] Exact `Length` arithmetic; tagged area / volume / angle / weight / money values
+- [x] Length formats: feet-inch-fraction, decimal feet, decimal inches, meters, yards
+- [x] Area (in²/ft²/yd²/m²/acres) and volume (in³/ft³/yd³/m³/gal/L) display + convert
+- [x] Weight (lb/kg/ton/tonne) input keys + display conversion
+- [x] Angle display toggle: D°M'S" ↔ decimal degrees; degrees/radians trig mode
+- [x] Cost-per-unit: price by the shown unit ($/ft, $/sq ft, $/cu yd, $/lb, …)
 - [x] Calculator state machine: digits, ops, units, equals, memory
 - [x] Right-angle/rafter solver (any 2 of pitch/rise/run/diagonal)
 - [x] Stair layout solver
+- [x] Compound miter (corner + spring → miter + bevel)
 - [x] Board feet
 - [x] Trig keys (sin/cos/tan/asin/acos/atan)
 - [x] Math keys (√, x², 1/x, %)
 - [x] Polygon (equal-sided) area + diagonals
 - [x] Circle (radius/diameter/circumference/area), arc length, chord, segment
-- [x] Material estimates (sheets, studs, roofing bundles)
-- [x] WASM bindings + Svelte UI
+- [x] Concrete volume + column/cone lateral surface area
+- [x] EZ Calc forms: board feet, studs, framing, equal spacing, balusters,
+      concrete, rebar, drywall, roofing, polygon, circle
+- [x] WASM bindings + Svelte UI; UniFFI Swift/Kotlin bindings
 - [x] Long-press context help
-- [x] Tape display
-- [x] Display-format strip (1/4, 1/8, 1/16, decimal, meters, yards)
+- [x] Tape display + export/share (Markdown / JSON, Web Share API)
+- [x] Dimension-aware display-format strip
 - [x] Physical keyboard support
+- [x] PWA install + preferences + saved tapes
 
 See [`todo.md`](todo.md) for the full roadmap including the iOS App Store
 release plan.
@@ -129,12 +151,12 @@ release plan.
 ```bash
 $ cargo test -p calc-core
    ...
-   test result: ok. 71 passed; 0 failed
+   test result: ok. 97 passed; 0 failed
 ```
 
-The full workspace (`cargo test --workspace`) runs 75 Rust tests
-(adds the `calc-uniffi` binding tests), and the frontend
-(`cd frontend && npx vitest run`) runs 38 TypeScript tests.
+The full workspace (`cargo test --workspace --all-features`) runs 106
+Rust tests (adds the `calc-uniffi` binding tests), and the frontend
+(`cd frontend && npx vitest run`) runs 62 TypeScript tests.
 
 ## License
 
