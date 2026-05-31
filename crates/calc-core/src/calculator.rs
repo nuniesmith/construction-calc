@@ -9,7 +9,7 @@ use num_rational::Rational64;
 use num_traits::Zero;
 
 use crate::error::CalcError;
-use crate::format::{AreaFormat, LengthFormat, VolumeFormat};
+use crate::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat};
 use crate::length::Length;
 use crate::numeric::{rational_from_f64, rational_from_f64_on_grid, rational_to_f64};
 use crate::operations::compound_miter_state::{MiterField, PartialCompoundMiter};
@@ -93,6 +93,8 @@ pub enum KeyEvent {
     ConvertArea(AreaFormat),
     /// Switch how a volume result is displayed (cu in / ft / yd / m, gal, L).
     ConvertVolume(VolumeFormat),
+    /// Switch how an angle result is displayed (D°M'S" vs decimal degrees).
+    ConvertAngle(AngleFormat),
     /// Set whether trig keys interpret/emit angles in degrees (`true`) or
     /// radians (`false`). Mirrors a user preference; persists in `Mode`.
     SetAngleMode(bool),
@@ -111,6 +113,7 @@ pub struct Mode {
     pub default_length_format: LengthFormat,
     pub default_area_format: AreaFormat,
     pub default_volume_format: VolumeFormat,
+    pub angle_format: AngleFormat,
     pub angle_in_degrees: bool,
 }
 
@@ -122,6 +125,10 @@ impl Default for Mode {
             // `17_280 sq in` reads as `120 sq ft`. The strip offers the rest.
             default_area_format: AreaFormat::SquareFeet { precision: 2 },
             default_volume_format: VolumeFormat::CubicFeet { precision: 2 },
+            // DMS is the long-standing display default; the strip offers
+            // decimal degrees. This is the *display* axis — independent of
+            // `angle_in_degrees`, which is trig input interpretation.
+            angle_format: AngleFormat::DegMinSec,
             angle_in_degrees: true,
         }
     }
@@ -345,6 +352,9 @@ impl Calculator {
             }
             KeyEvent::ConvertVolume(fmt) => {
                 self.mode.default_volume_format = fmt.validate().map_err(CalcError::Parse)?
+            }
+            KeyEvent::ConvertAngle(fmt) => {
+                self.mode.angle_format = fmt.validate().map_err(CalcError::Parse)?
             }
             KeyEvent::SetAngleMode(degrees) => self.mode.angle_in_degrees = degrees,
             KeyEvent::Memory(m) => self.handle_memory(m)?,
@@ -661,7 +671,7 @@ impl Calculator {
             Value::Length(l) => crate::format::format_length(&l, self.mode.default_length_format),
             Value::Area(r) => crate::format::format_area(r, self.mode.default_area_format),
             Value::Volume(r) => crate::format::format_volume(r, self.mode.default_volume_format),
-            Value::Angle(a) => a.to_string(),
+            Value::Angle(a) => crate::format::format_angle(&a, self.mode.angle_format),
             Value::Money(r) => crate::format::format_money(r),
         }
     }

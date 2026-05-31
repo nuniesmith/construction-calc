@@ -17,7 +17,7 @@
 //!   `convert <unit>` → change display mode
 
 use calc_core::calculator::{BinaryOp, Calculator, FunctionKey, KeyEvent, LengthUnitKey};
-use calc_core::format::{AreaFormat, LengthFormat, VolumeFormat};
+use calc_core::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat};
 use std::io::{self, BufRead, Write};
 
 fn main() {
@@ -72,6 +72,7 @@ fn print_help() {
     println!("  display: convert <feet|inch|m|yd>  (feet rounds to 1/4, 1/8, or 1/16)");
     println!("  area:    area <sqin|sqft|sqyd|sqm|acre>  (how an area result shows)");
     println!("  volume:  vol <cuin|cuft|cuyd|cum|gal|l>  (how a volume result shows)");
+    println!("  angfmt:  afmt <dms|dd>  (angle display: D°M'S\" or decimal degrees)");
     println!("  angle:   angle <deg|rad>  (how trig keys read a plain number)");
     println!("  cost:    <qty> cost <price> =  (price per the shown unit -> $total)");
     println!("Example: 5 ft 6 in + 2 ft 7 in =");
@@ -193,6 +194,17 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
                     other => return Err(format!("unknown volume target {other}")),
                 };
                 calc.handle(KeyEvent::ConvertVolume(fmt)).map_err(s)?
+            }
+            "afmt" => {
+                let target = tokens
+                    .next()
+                    .ok_or_else(|| "afmt needs dms|dd".to_string())?;
+                let fmt = match target {
+                    "dms" => AngleFormat::DegMinSec,
+                    "dd" | "deg" => AngleFormat::DecimalDegrees { precision: 4 },
+                    other => return Err(format!("unknown angle format {other}")),
+                };
+                calc.handle(KeyEvent::ConvertAngle(fmt)).map_err(s)?
             }
             "angle" => {
                 let target = tokens

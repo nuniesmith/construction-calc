@@ -35,6 +35,7 @@ export type Key =
   | { type: 'convert'; format: string; denom?: number; precision?: number }
   | { type: 'convertArea'; format: string; precision?: number }
   | { type: 'convertVolume'; format: string; precision?: number }
+  | { type: 'convertAngle'; format: string; precision?: number }
   | { type: 'setAngleMode'; degrees: boolean }
   | {
       type: 'memory';
