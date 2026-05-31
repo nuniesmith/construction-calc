@@ -21,6 +21,33 @@ export function downloadText(filename: string, contents: string, mime = 'text/pl
   }, 0);
 }
 
+/** True when the browser exposes the Web Share API (mostly mobile + Safari).
+ * Lets callers show a native "Share" affordance only where it works, falling
+ * back to copy / download elsewhere. Safe during SSR (no `navigator`). */
+export function canShare(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+}
+
+/** Outcome of a share attempt, so the caller can fall back when needed. */
+export type ShareResult = 'shared' | 'unsupported' | 'cancelled';
+
+/**
+ * Share text via the OS share sheet (Messages, Mail, AirDrop, …). Returns
+ * `'unsupported'` when the Web Share API is absent (caller should fall back
+ * to download), and `'cancelled'` when the user dismisses the sheet — which
+ * is a normal action, not an error.
+ */
+export async function shareText(title: string, text: string): Promise<ShareResult> {
+  if (!canShare()) return 'unsupported';
+  try {
+    await navigator.share({ title, text });
+    return 'shared';
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
+    throw err;
+  }
+}
+
 /** Cap on imported file size: a generous 5 MB. A real tape is a few KB; */
 /* anything larger is almost certainly the wrong file or hostile input. */
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;

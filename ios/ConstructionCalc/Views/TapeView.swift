@@ -35,7 +35,19 @@ struct TapeView: View {
                     Button("Done") { dismiss() }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    ShareLink(item: vm.exportMarkdown()) {
+                    // Share sheet offers both formats: Markdown to paste into a
+                    // message, JSON to re-import later. JSON is omitted if the
+                    // engine can't serialize (exportJson returns nil).
+                    Menu {
+                        ShareLink(item: vm.exportMarkdown()) {
+                            Label("Share as Markdown", systemImage: "doc.richtext")
+                        }
+                        if let json = vm.exportJson() {
+                            ShareLink(item: json) {
+                                Label("Share as JSON", systemImage: "curlybraces")
+                            }
+                        }
+                    } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
                     .disabled(vm.tapeMarkdown.isEmpty)
