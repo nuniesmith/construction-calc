@@ -88,11 +88,13 @@ having a Mac with Xcode.
    `Mode.angle_format` independent of the trig-input `angle_in_degrees`.
    Wired through wasm + uniffi + CLI (`afmt dms|dd`) + the format strip
    (`°′″` / `deg`). Reuses the exact `Angle` Display for DMS.
-5. **[ ] Tape export / share.** JSON + Markdown export already exist in
-   the engine. Wire a **download button** on web (`download.ts` is
-   already present) and an iOS **Share Sheet**. Low effort, high "feels
-   finished" payoff; also needed for the "hand a tape to the inspector"
-   story.
+5. **[x] Tape export / share.** Web already had `.md` / `.json` download
+   + clipboard copy + load; iOS already had a Markdown `ShareLink`. Added
+   the missing pieces: a **Web Share API** button (`navigator.share`) so
+   mobile web gets a real OS share sheet (falls back to download), the iOS
+   share now offers **Markdown *and* JSON**, and `canShare` / `shareText`
+   helpers are unit-tested. Possible follow-up: share a `.md`/`.json`
+   *file* (not just text) where `navigator.canShare({ files })` allows.
 6. **[ ] Verify compound miter end-to-end.** The Corner/Spring/Miter/Bevel
    keys exist as enum variants and the keypad Miter page has the four
    buttons — drive the full flow (enter 90° corner, 38° spring → confirm
@@ -146,7 +148,8 @@ Expanded detail for the Track A items above plus the smaller polish.
       `CostPerUnit`; prices by the shown unit ($/ft, $/sq ft, $/cu yd).
 - [x] **dms ↔ deg** angle display toggle — `AngleFormat` + `ConvertAngle`,
       with a format-strip toggle (`°′″` / `deg`).
-- [ ] **Save/share tape** — download button (web) + Share Sheet (iOS).
+- [x] **Save/share tape** — web download + clipboard + Web Share API;
+      iOS `ShareLink` (Markdown + JSON).
 - [ ] **Compound miter** end-to-end verification — see §1.6.
 - [ ] **Material estimates** — sheathing/plates/headers + generalized
       equal-spacing divider — see §1.7.

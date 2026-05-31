@@ -1,10 +1,19 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { calc } from './calc';
-  import { downloadText, pickTextFile, FileTooLargeError } from './download';
+  import { canShare, shareText, downloadText, pickTextFile, FileTooLargeError } from './download';
   import { saveTape, TapeLimitReachedError, TapeTooLargeError } from './tapeStore';
 
   let copied = false;
   let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Native share sheet — only where the browser supports it (mobile / Safari).
+  // Checked in onMount so SSR (no `navigator`) renders the same as a desktop
+  // browser without the API.
+  let nativeShare = false;
+  onMount(() => {
+    nativeShare = canShare();
+  });
 
   // Inline message displayed above the toolbar — replaces alert() popups.
   // null = hidden; 'error' tints red; 'info' is neutral.
@@ -41,6 +50,17 @@
 
   function downloadMarkdown() {
     downloadText(timestampedFilename('md'), calc.exportMarkdown(), 'text/markdown');
+  }
+
+  async function shareTape() {
+    try {
+      const result = await shareText('Construction Calc tape', calc.exportMarkdown());
+      // No API (shouldn't happen — the button is hidden) → fall back to a
+      // file download. A user-cancelled sheet is silent.
+      if (result === 'unsupported') downloadMarkdown();
+    } catch (e) {
+      flash('error', `Share failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   async function copyMarkdown() {
@@ -137,6 +157,11 @@
 {/if}
 
 <div class="toolbar">
+  {#if nativeShare}
+    <button on:click={shareTape} title="Share the tape via the system share sheet">
+      ⤴ Share
+    </button>
+  {/if}
   <button on:click={copyMarkdown} title="Copy markdown to clipboard">
     {copied ? '✓ Copied' : '📋 Copy'}
   </button>
