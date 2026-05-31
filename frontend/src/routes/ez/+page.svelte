@@ -17,6 +17,8 @@
       calcs: [
         { href: '/ez/board-feet', title: 'Board feet', body: 'Total board feet for a count of lumber pieces, with optional cost.' },
         { href: '/ez/studs', title: 'Studs', body: 'Field stud count for a wall at OC spacing, with corner and opening extras.' },
+        { href: '/ez/framing', title: 'Framing', body: 'Sheathing panels, wall plates, and headers for a stud wall.' },
+        { href: '/ez/spacing', title: 'Equal spacing', body: 'Even layout for joists, studs, pickets, or balusters — max-gap or on-center.' },
         { href: '/ez/baluster', title: 'Balusters', body: 'Even baluster layout that satisfies the IRC 4" sphere code.' }
       ]
     },
