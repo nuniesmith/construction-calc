@@ -169,3 +169,23 @@ fn angle_format_toggles_through_the_bindings() {
     });
     assert_eq!(snap.display, "45\u{00B0}");
 }
+
+#[test]
+fn weight_unit_and_convert_through_the_bindings() {
+    use calc_uniffi::{Dimension, WeightFormat, WeightUnit};
+
+    // 2 ton → 4000 lb (default pounds display), tagged Weight.
+    let calc = Calculator::new();
+    calc.handle(KeyEvent::Digit { value: 2 });
+    let snap = calc.handle(KeyEvent::WeightUnit {
+        unit: WeightUnit::Tons,
+    });
+    assert_eq!(snap.display, "4000 lb");
+    assert_eq!(snap.dimension, Dimension::Weight);
+
+    // Show it in tons.
+    let snap = calc.handle(KeyEvent::ConvertWeight {
+        format: WeightFormat::Tons { precision: 1 },
+    });
+    assert_eq!(snap.display, "2 ton");
+}

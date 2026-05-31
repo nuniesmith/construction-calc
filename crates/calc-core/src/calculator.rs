@@ -9,7 +9,7 @@ use num_rational::Rational64;
 use num_traits::Zero;
 
 use crate::error::CalcError;
-use crate::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat};
+use crate::format::{AngleFormat, AreaFormat, LengthFormat, VolumeFormat, WeightFormat};
 use crate::length::Length;
 use crate::numeric::{rational_from_f64, rational_from_f64_on_grid, rational_to_f64};
 use crate::operations::compound_miter_state::{MiterField, PartialCompoundMiter};
@@ -31,6 +31,16 @@ pub enum LengthUnitKey {
     Inch,
     Yards,
     Meters,
+}
+
+/// Weight unit keys. Pressing one tags the entered number as a weight
+/// (stored internally as exact pounds).
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum WeightUnitKey {
+    Pounds,
+    Kilograms,
+    Tons,
+    Tonnes,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -83,6 +93,9 @@ pub enum KeyEvent {
     Op(BinaryOp),
     Equals,
     Unit(LengthUnitKey),
+    /// Tag the entered number as a weight in the given unit (stored as
+    /// exact pounds).
+    WeightUnit(WeightUnitKey),
     Function(FunctionKey),
     /// Begin a cost-per-unit calculation: the current value becomes the
     /// quantity, the next entered number is the price per the quantity's
@@ -95,6 +108,8 @@ pub enum KeyEvent {
     ConvertVolume(VolumeFormat),
     /// Switch how an angle result is displayed (D°M'S" vs decimal degrees).
     ConvertAngle(AngleFormat),
+    /// Switch how a weight result is displayed (lb / kg / ton / tonne).
+    ConvertWeight(WeightFormat),
     /// Set whether trig keys interpret/emit angles in degrees (`true`) or
     /// radians (`false`). Mirrors a user preference; persists in `Mode`.
     SetAngleMode(bool),
@@ -113,6 +128,7 @@ pub struct Mode {
     pub default_length_format: LengthFormat,
     pub default_area_format: AreaFormat,
     pub default_volume_format: VolumeFormat,
+    pub default_weight_format: WeightFormat,
     pub angle_format: AngleFormat,
     pub angle_in_degrees: bool,
 }
@@ -125,6 +141,8 @@ impl Default for Mode {
             // `17_280 sq in` reads as `120 sq ft`. The strip offers the rest.
             default_area_format: AreaFormat::SquareFeet { precision: 2 },
             default_volume_format: VolumeFormat::CubicFeet { precision: 2 },
+            // Pounds is the default weight display; the strip offers kg/ton/t.
+            default_weight_format: WeightFormat::Pounds { precision: 2 },
             // DMS is the long-standing display default; the strip offers
             // decimal degrees. This is the *display* axis — independent of
             // `angle_in_degrees`, which is trig input interpretation.
@@ -342,6 +360,7 @@ impl Calculator {
                 self.refresh_display_from_entry()?;
             }
             KeyEvent::Unit(u) => self.commit_unit(u)?,
+            KeyEvent::WeightUnit(u) => self.commit_weight_unit(u)?,
             KeyEvent::Op(op) => self.commit_op(op)?,
             KeyEvent::Equals => self.commit_equals()?,
             KeyEvent::Function(f) => self.handle_function(f)?,
@@ -355,6 +374,9 @@ impl Calculator {
             }
             KeyEvent::ConvertAngle(fmt) => {
                 self.mode.angle_format = fmt.validate().map_err(CalcError::Parse)?
+            }
+            KeyEvent::ConvertWeight(fmt) => {
+                self.mode.default_weight_format = fmt.validate().map_err(CalcError::Parse)?
             }
             KeyEvent::SetAngleMode(degrees) => self.mode.angle_in_degrees = degrees,
             KeyEvent::Memory(m) => self.handle_memory(m)?,
@@ -411,6 +433,32 @@ impl Calculator {
             ..EntryBuffer::default()
         };
         self.display = Value::Length(total);
+        Ok(())
+    }
+
+    /// Tag the entered number as a weight, converting to the canonical
+    /// pounds store. Unlike lengths, weights don't accumulate (no "5 lb 3 oz"
+    /// entry convention here), so each press replaces the display.
+    fn commit_weight_unit(&mut self, u: WeightUnitKey) -> Result<(), CalcError> {
+        let n = match self.display {
+            // Convert a bare scalar already on the display (typed or computed).
+            Value::Scalar(r) => r,
+            // Re-tagging an existing weight: reinterpret nothing, just keep it.
+            Value::Weight(w) => {
+                self.entry.reset();
+                self.display = Value::Weight(w);
+                return Ok(());
+            }
+            _ => return Err(CalcError::TypeMismatch),
+        };
+        let fmt = match u {
+            WeightUnitKey::Pounds => WeightFormat::Pounds { precision: 0 },
+            WeightUnitKey::Kilograms => WeightFormat::Kilograms { precision: 0 },
+            WeightUnitKey::Tons => WeightFormat::Tons { precision: 0 },
+            WeightUnitKey::Tonnes => WeightFormat::Tonnes { precision: 0 },
+        };
+        self.entry.reset();
+        self.display = Value::Weight(n * crate::format::pounds_per(fmt));
         Ok(())
     }
 
@@ -499,6 +547,7 @@ impl Calculator {
             },
             Value::Area(r) => crate::format::area_magnitude(r, self.mode.default_area_format),
             Value::Volume(r) => crate::format::volume_magnitude(r, self.mode.default_volume_format),
+            Value::Weight(r) => crate::format::weight_magnitude(r, self.mode.default_weight_format),
             Value::Angle(_) => return Err(CalcError::Domain("can't price an angle".into())),
             Value::Money(_) => return Err(CalcError::Domain("already a cost".into())),
         })
@@ -673,6 +722,7 @@ impl Calculator {
             Value::Volume(r) => crate::format::format_volume(r, self.mode.default_volume_format),
             Value::Angle(a) => crate::format::format_angle(&a, self.mode.angle_format),
             Value::Money(r) => crate::format::format_money(r),
+            Value::Weight(r) => crate::format::format_weight(r, self.mode.default_weight_format),
         }
     }
 

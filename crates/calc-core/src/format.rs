@@ -270,6 +270,86 @@ pub fn format_angle(a: &Angle, fmt: AngleFormat) -> String {
     }
 }
 
+/// Display format for weight results. Weight is stored internally as exact
+/// pounds; each variant converts to the chosen unit and renders to
+/// `precision` decimal places.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum WeightFormat {
+    Pounds {
+        precision: u8,
+    },
+    Kilograms {
+        precision: u8,
+    },
+    /// US short ton (2000 lb).
+    Tons {
+        precision: u8,
+    },
+    /// Metric tonne (1000 kg).
+    Tonnes {
+        precision: u8,
+    },
+}
+
+impl WeightFormat {
+    fn precision(self) -> u8 {
+        match self {
+            WeightFormat::Pounds { precision }
+            | WeightFormat::Kilograms { precision }
+            | WeightFormat::Tons { precision }
+            | WeightFormat::Tonnes { precision } => precision,
+        }
+    }
+
+    pub fn validate(self) -> Result<Self, ParseError> {
+        let p = self.precision();
+        if p > MAX_PRECISION {
+            Err(ParseError::InvalidPrecision(p))
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+// Pounds per one target unit, plus precision + suffix. All exact:
+// 1 lb = 0.453_592_37 kg exactly, so 1 kg = 100_000_000/45_359_237 lb;
+// 1 short ton = 2000 lb; 1 tonne = 1000 kg = 100_000_000_000/45_359_237 lb.
+fn weight_parts(fmt: WeightFormat) -> (Rational64, u8, &'static str) {
+    match fmt {
+        WeightFormat::Pounds { precision } => (Rational64::from_integer(1), precision, "lb"),
+        WeightFormat::Kilograms { precision } => {
+            (Rational64::new(100_000_000, 45_359_237), precision, "kg")
+        }
+        WeightFormat::Tons { precision } => (Rational64::from_integer(2000), precision, "ton"),
+        WeightFormat::Tonnes { precision } => {
+            (Rational64::new(100_000_000_000, 45_359_237), precision, "t")
+        }
+    }
+}
+
+/// Pounds in one of the given weight unit — the factor a typed magnitude is
+/// multiplied by to reach the canonical pounds store.
+pub fn pounds_per(fmt: WeightFormat) -> Rational64 {
+    weight_parts(fmt).0
+}
+
+/// The numeric magnitude of a weight (exact pounds) in the chosen unit,
+/// without the suffix. Used for pricing `$/unit × quantity`.
+pub fn weight_magnitude(pounds: Rational64, fmt: WeightFormat) -> Rational64 {
+    pounds / weight_parts(fmt).0
+}
+
+/// Render a weight (exact pounds) in the chosen unit.
+pub fn format_weight(pounds: Rational64, fmt: WeightFormat) -> String {
+    let (per_unit, precision, suffix) = weight_parts(fmt);
+    format!(
+        "{} {}",
+        rational_to_decimal_string(pounds / per_unit, precision),
+        suffix
+    )
+}
+
 /// Render a money amount in dollars, always with two decimal places and a
 /// leading `$` (sign before the symbol: `-$5.00`).
 pub fn format_money(dollars: Rational64) -> String {

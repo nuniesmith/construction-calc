@@ -24,10 +24,11 @@ use calc_core::Dimension as CoreDimension;
 use calc_core::calculator::{
     BinaryOp as CoreBinaryOp, Calculator as CoreCalculator, FunctionKey as CoreFn,
     KeyEvent as CoreKeyEvent, LengthUnitKey as CoreUnit, MemoryOp as CoreMemOp,
+    WeightUnitKey as CoreWeightUnit,
 };
 use calc_core::format::{
     AngleFormat as CoreAngleFormat, AreaFormat as CoreAreaFormat, LengthFormat as CoreLengthFormat,
-    VolumeFormat as CoreVolumeFormat,
+    VolumeFormat as CoreVolumeFormat, WeightFormat as CoreWeightFormat,
 };
 
 uniffi::setup_scaffolding!("calc_uniffi");
@@ -50,6 +51,15 @@ pub enum Unit {
     Inch,
     Yards,
     Meters,
+}
+
+/// Weight input unit keys. Pressing one tags the entered number as a weight.
+#[derive(uniffi::Enum, Clone, Copy, Debug)]
+pub enum WeightUnit {
+    Pounds,
+    Kilograms,
+    Tons,
+    Tonnes,
 }
 
 #[derive(uniffi::Enum, Clone, Copy, Debug)]
@@ -128,6 +138,15 @@ pub enum AngleFormat {
     DecimalDegrees { precision: u8 },
 }
 
+/// Display format for weight results.
+#[derive(uniffi::Enum, Clone, Copy, Debug)]
+pub enum WeightFormat {
+    Pounds { precision: u8 },
+    Kilograms { precision: u8 },
+    Tons { precision: u8 },
+    Tonnes { precision: u8 },
+}
+
 /// Dimensional category of the display value, so the iOS UI can show the
 /// matching unit controls (length vs. area vs. volume).
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
@@ -138,6 +157,7 @@ pub enum Dimension {
     Volume,
     Angle,
     Money,
+    Weight,
 }
 
 #[derive(uniffi::Enum, Clone, Debug)]
@@ -154,6 +174,10 @@ pub enum KeyEvent {
     Equals,
     Unit {
         unit: Unit,
+    },
+    /// Tag the entered number as a weight in the given unit.
+    WeightUnit {
+        unit: WeightUnit,
     },
     Function {
         function: FunctionKey,
@@ -175,6 +199,10 @@ pub enum KeyEvent {
     },
     ConvertAngle {
         format: AngleFormat,
+    },
+    /// Switch how a weight result is displayed.
+    ConvertWeight {
+        format: WeightFormat,
     },
     /// Set whether trig keys use degrees (`true`) or radians (`false`).
     SetAngleMode {
@@ -304,6 +332,12 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             Unit::Yards => CoreUnit::Yards,
             Unit::Meters => CoreUnit::Meters,
         }),
+        KeyEvent::WeightUnit { unit } => CoreKeyEvent::WeightUnit(match unit {
+            WeightUnit::Pounds => CoreWeightUnit::Pounds,
+            WeightUnit::Kilograms => CoreWeightUnit::Kilograms,
+            WeightUnit::Tons => CoreWeightUnit::Tons,
+            WeightUnit::Tonnes => CoreWeightUnit::Tonnes,
+        }),
         KeyEvent::Function { function } => CoreKeyEvent::Function(match function {
             FunctionKey::Pitch => CoreFn::Pitch,
             FunctionKey::Rise => CoreFn::Rise,
@@ -358,6 +392,12 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
                 CoreAngleFormat::DecimalDegrees { precision }
             }
         }),
+        KeyEvent::ConvertWeight { format } => CoreKeyEvent::ConvertWeight(match format {
+            WeightFormat::Pounds { precision } => CoreWeightFormat::Pounds { precision },
+            WeightFormat::Kilograms { precision } => CoreWeightFormat::Kilograms { precision },
+            WeightFormat::Tons { precision } => CoreWeightFormat::Tons { precision },
+            WeightFormat::Tonnes { precision } => CoreWeightFormat::Tonnes { precision },
+        }),
         KeyEvent::CostPerUnit => CoreKeyEvent::CostPerUnit,
         KeyEvent::SetAngleMode { degrees } => CoreKeyEvent::SetAngleMode(degrees),
         KeyEvent::Memory { op } => CoreKeyEvent::Memory(match op {
@@ -382,5 +422,6 @@ fn dimension_from_core(d: CoreDimension) -> Dimension {
         CoreDimension::Volume => Dimension::Volume,
         CoreDimension::Angle => Dimension::Angle,
         CoreDimension::Money => Dimension::Money,
+        CoreDimension::Weight => Dimension::Weight,
     }
 }
