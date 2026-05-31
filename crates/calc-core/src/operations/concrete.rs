@@ -80,3 +80,38 @@ pub fn cone_volume(diameter: Length, height: Length) -> Result<Rational64, CalcE
 pub fn cubic_inches_to_cubic_yards(cu_in: Rational64) -> f64 {
     rational_to_f64(cu_in) / CU_IN_PER_CU_YD as f64
 }
+
+/// Lateral (side) surface area of a cylindrical column — the area of form
+/// material / wrap, *excluding* the two end caps.
+///
+/// Lateral area = π × d × h. Returned in square inches reified onto a
+/// 1/1_000_000 grid, matching the volume helpers.
+pub fn column_lateral_area(diameter: Length, height: Length) -> Result<Rational64, CalcError> {
+    if diameter.is_zero() || diameter.is_negative() {
+        return Err(CalcError::Domain("column diameter must be positive".into()));
+    }
+    if height.is_zero() || height.is_negative() {
+        return Err(CalcError::Domain("column height must be positive".into()));
+    }
+    let d = rational_to_f64(diameter.inches());
+    let h = rational_to_f64(height.inches());
+    rational_from_f64_on_grid(PI * d * h, 1_000_000)
+}
+
+/// Lateral (side) surface area of a cone — the curved area along the slant,
+/// *excluding* the circular base.
+///
+/// Lateral area = π × r × ℓ, where the slant height ℓ = √(r² + h²).
+/// Returned in square inches reified onto a 1/1_000_000 grid.
+pub fn cone_lateral_area(diameter: Length, height: Length) -> Result<Rational64, CalcError> {
+    if diameter.is_zero() || diameter.is_negative() {
+        return Err(CalcError::Domain("cone diameter must be positive".into()));
+    }
+    if height.is_zero() || height.is_negative() {
+        return Err(CalcError::Domain("cone height must be positive".into()));
+    }
+    let r = rational_to_f64(diameter.inches()) / 2.0;
+    let h = rational_to_f64(height.inches());
+    let slant = (r * r + h * h).sqrt();
+    rational_from_f64_on_grid(PI * r * slant, 1_000_000)
+}

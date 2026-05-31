@@ -34,6 +34,9 @@
     rawCy: number;
     withWasteCy: number;
     label: string;
+    /** Lateral (side) surface area in sq ft for column/cone — form/wrap
+     * material. Undefined for a slab. */
+    lateralSqFt?: number;
     valid: boolean;
     error?: string;
   }
@@ -66,12 +69,21 @@
     if (D <= 0 || H <= 0) return blank('diameter and height must be > 0');
     const r = D / 2;
     let cuIn = Math.PI * r * r * H;
-    if (shape === 'cone') cuIn /= 3;
+    // Lateral surface area (sq in → sq ft): cylinder π·d·h; cone π·r·slant.
+    // Mirrors operations::concrete::{column,cone}_lateral_area.
+    let lateralSqIn: number;
+    if (shape === 'cone') {
+      cuIn /= 3;
+      lateralSqIn = Math.PI * r * Math.sqrt(r * r + H * H);
+    } else {
+      lateralSqIn = Math.PI * D * H;
+    }
     const cy = cuIn / CU_IN_PER_CY;
     return {
       rawCy: cy,
       withWasteCy: cy * waste,
       label: `${shape} Ø${colDiamIn}" × ${colHeightFt}'`,
+      lateralSqFt: lateralSqIn / 144,
       valid: true
     };
   }
@@ -79,10 +91,15 @@
   let saved: string | null = null;
   function saveToTape() {
     if (!result.valid) return;
+    const lateral =
+      result.lateralSqFt !== undefined
+        ? ` · ${result.lateralSqFt.toFixed(2)} sq ft side area`
+        : '';
     const summary =
       `Concrete — ${result.label}` +
       ` → ${result.rawCy.toFixed(2)} cy raw` +
-      ` (${result.withWasteCy.toFixed(2)} cy w/ ${wastePct}% waste)`;
+      ` (${result.withWasteCy.toFixed(2)} cy w/ ${wastePct}% waste)` +
+      lateral;
     calc.send({ type: 'note', text: summary });
     saved = summary;
   }
@@ -148,6 +165,9 @@
       <dl>
         <dt>Raw volume</dt><dd>{result.rawCy.toFixed(3)} cy</dd>
         <dt class="big">Order (w/ waste)</dt><dd class="big">{result.withWasteCy.toFixed(2)} cy</dd>
+        {#if result.lateralSqFt !== undefined}
+          <dt>Side area (form/wrap)</dt><dd>{result.lateralSqFt.toFixed(2)} sq ft</dd>
+        {/if}
       </dl>
       <button on:click={saveToTape}>Save to tape</button>
       {#if saved}<p class="saved">Saved.</p>{/if}
