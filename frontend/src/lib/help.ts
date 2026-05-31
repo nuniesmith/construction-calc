@@ -52,6 +52,12 @@ export const HELP: Record<string, HelpEntry> = {
     body: 'After an operator, treats the entered number as a percent of the previous operand.',
     example: '200 + 5 % = adds 5% of 200 = 210'
   },
+  cost: {
+    title: 'Cost per unit',
+    body: 'Prices the current value by whatever unit it is showing: $/ft for a length, $/sq ft for an area, $/cu yd for a volume, $/each for a count. Press Cost, enter the price, then =. Tip: pick the unit on the format strip first.',
+    formula: 'total = price × quantity-in-shown-unit',
+    example: '10 [Feet] [Cost] 2 = $20.00'
+  },
   // -------- Compound miter --------
   corner: {
     title: 'Corner angle',

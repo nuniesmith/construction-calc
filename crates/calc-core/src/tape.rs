@@ -98,5 +98,6 @@ fn fmt_value(v: &Value) -> String {
         Value::Area(r) => format!("{} sq in", crate::format::rational_to_decimal_string(*r, 4)),
         Value::Volume(r) => format!("{} cu in", crate::format::rational_to_decimal_string(*r, 4)),
         Value::Angle(a) => a.to_string(),
+        Value::Money(r) => crate::format::format_money(*r),
     }
 }

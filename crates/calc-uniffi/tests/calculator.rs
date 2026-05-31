@@ -134,3 +134,19 @@ fn area_result_carries_dimension_and_converts_through_the_bindings() {
     });
     assert_eq!(snap.display, "13.33 sq yd");
 }
+
+#[test]
+fn cost_per_unit_through_the_bindings() {
+    use calc_uniffi::Dimension;
+
+    // 10 ft @ $2/ft = $20.00, tagged as Money.
+    let calc = Calculator::new();
+    calc.handle(KeyEvent::Digit { value: 1 });
+    calc.handle(KeyEvent::Digit { value: 0 });
+    calc.handle(KeyEvent::Unit { unit: Unit::Feet });
+    calc.handle(KeyEvent::CostPerUnit);
+    calc.handle(KeyEvent::Digit { value: 2 });
+    let snap = calc.handle(KeyEvent::Equals);
+    assert_eq!(snap.display, "$20.00");
+    assert_eq!(snap.dimension, Dimension::Money);
+}

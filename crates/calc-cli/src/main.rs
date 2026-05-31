@@ -73,6 +73,7 @@ fn print_help() {
     println!("  area:    area <sqin|sqft|sqyd|sqm|acre>  (how an area result shows)");
     println!("  volume:  vol <cuin|cuft|cuyd|cum|gal|l>  (how a volume result shows)");
     println!("  angle:   angle <deg|rad>  (how trig keys read a plain number)");
+    println!("  cost:    <qty> cost <price> =  (price per the shown unit -> $total)");
     println!("Example: 5 ft 6 in + 2 ft 7 in =");
 }
 
@@ -145,6 +146,7 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
             "%" | "pct" => calc
                 .handle(KeyEvent::Function(FunctionKey::Percent))
                 .map_err(s)?,
+            "cost" => calc.handle(KeyEvent::CostPerUnit).map_err(s)?,
             "clear" | "ce" => calc.handle(KeyEvent::Clear).map_err(s)?,
             "clearall" | "ac" => calc.handle(KeyEvent::ClearAll).map_err(s)?,
             "bs" => calc.handle(KeyEvent::Backspace).map_err(s)?,

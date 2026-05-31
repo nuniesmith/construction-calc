@@ -19,6 +19,9 @@ pub enum Value {
     /// 3-dimensional: stored as cubic inches.
     Volume(Rational64),
     Angle(Angle),
+    /// A monetary amount in dollars (exact). Produced by the cost-per-unit
+    /// function: `quantity × price-per-display-unit`.
+    Money(Rational64),
 }
 
 /// The dimensional category of a [`Value`]. Lets a UI pick the right set of
@@ -33,6 +36,7 @@ pub enum Dimension {
     Area,
     Volume,
     Angle,
+    Money,
 }
 
 impl Dimension {
@@ -45,6 +49,7 @@ impl Dimension {
             Dimension::Area => "area",
             Dimension::Volume => "volume",
             Dimension::Angle => "angle",
+            Dimension::Money => "money",
         }
     }
 }
@@ -65,6 +70,7 @@ impl Value {
             Value::Area(r) => r.is_zero(),
             Value::Volume(r) => r.is_zero(),
             Value::Angle(a) => a.degrees().is_zero(),
+            Value::Money(r) => r.is_zero(),
         }
     }
 
@@ -76,6 +82,7 @@ impl Value {
             Value::Area(_) => Dimension::Area,
             Value::Volume(_) => Dimension::Volume,
             Value::Angle(_) => Dimension::Angle,
+            Value::Money(_) => Dimension::Money,
         }
     }
 
@@ -88,6 +95,7 @@ impl Value {
             (Value::Angle(a), Value::Angle(b)) => {
                 Ok(Value::Angle(Angle::from_degrees(a.degrees() + b.degrees())))
             }
+            (Value::Money(a), Value::Money(b)) => Ok(Value::Money(a + b)),
             _ => Err(CalcError::TypeMismatch),
         }
     }
@@ -101,6 +109,7 @@ impl Value {
             (Value::Angle(a), Value::Angle(b)) => {
                 Ok(Value::Angle(Angle::from_degrees(a.degrees() - b.degrees())))
             }
+            (Value::Money(a), Value::Money(b)) => Ok(Value::Money(a - b)),
             _ => Err(CalcError::TypeMismatch),
         }
     }
@@ -126,6 +135,10 @@ impl Value {
             (Value::Length(l), Value::Area(a)) | (Value::Area(a), Value::Length(l)) => {
                 Ok(Value::Volume(l.inches() * a))
             }
+            // Scaling a cost by a count (e.g. 3 fixtures × $40 = $120).
+            (Value::Scalar(s), Value::Money(m)) | (Value::Money(m), Value::Scalar(s)) => {
+                Ok(Value::Money(m * s))
+            }
             _ => Err(CalcError::TypeMismatch),
         }
     }
@@ -145,6 +158,9 @@ impl Value {
             (Value::Volume(v), Value::Scalar(s)) => Ok(Value::Volume(v / s)),
             (Value::Volume(v), Value::Length(l)) => Ok(Value::Area(v / l.inches())),
             (Value::Volume(v), Value::Area(a)) => Ok(Value::Length(Length::from_inches(v / a))),
+            // Split a cost across a count, or take a ratio of two costs.
+            (Value::Money(m), Value::Scalar(s)) => Ok(Value::Money(m / s)),
+            (Value::Money(a), Value::Money(b)) => Ok(Value::Scalar(a / b)),
             _ => Err(CalcError::TypeMismatch),
         }
     }

@@ -31,6 +31,7 @@ export type Key =
   | { type: 'equals' }
   | { type: 'unit'; unit: Unit }
   | { type: 'function'; fun: FunctionKey }
+  | { type: 'costPerUnit' }
   | { type: 'convert'; format: string; denom?: number; precision?: number }
   | { type: 'convertArea'; format: string; precision?: number }
   | { type: 'convertVolume'; format: string; precision?: number }
