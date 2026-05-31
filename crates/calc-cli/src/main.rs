@@ -117,6 +117,18 @@ fn run_line(calc: &mut Calculator, line: &str) -> Result<(), String> {
             "jack" => calc
                 .handle(KeyEvent::Function(FunctionKey::Jack))
                 .map_err(s)?,
+            "corner" => calc
+                .handle(KeyEvent::Function(FunctionKey::Corner))
+                .map_err(s)?,
+            "spring" => calc
+                .handle(KeyEvent::Function(FunctionKey::Spring))
+                .map_err(s)?,
+            "miter" => calc
+                .handle(KeyEvent::Function(FunctionKey::Miter))
+                .map_err(s)?,
+            "bevel" => calc
+                .handle(KeyEvent::Function(FunctionKey::Bevel))
+                .map_err(s)?,
             "sin" => calc
                 .handle(KeyEvent::Function(FunctionKey::Sin))
                 .map_err(s)?,

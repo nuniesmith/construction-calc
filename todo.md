@@ -183,8 +183,8 @@ gaps are engine-complete and just need a button + help text.
 - [x] Hip / Valley
 - [x] Jack rafter difference
 - [x] Stair layout
-- [x] Compound miter (corner + spring → miter + bevel) — *verify the full
-      keypad flow end-to-end (§1.6)*
+- [x] Compound miter (corner + spring → miter + bevel) — verified
+      end-to-end (§1.6); also exposed in the CLI (`corner spring miter bevel`)
 - [x] Circle (radius, diameter, circumference, area, arc, chord, segment)
 - [x] Polygon (equilateral)
 - [x] Board feet
