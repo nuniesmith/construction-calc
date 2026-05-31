@@ -1,6 +1,6 @@
 # todo.md
 
-Roadmap for **Construction Calc** — short term cleanup, feature parity with
+Roadmap for **Construction Calc** — short-term cleanup, feature parity with
 Construction Master Pro / Calculated Industries class apps, and the path
 to a paid iOS App Store release at **$4.99 (one-time, forever — no
 subscription, no IAP)**.
@@ -11,103 +11,167 @@ Status legend: `[x]` done · `[ ]` planned · `[~]` in progress
 
 ## 0. Project review (May 2026)
 
-The architecture is in good shape for what you want to do:
+The architecture is in good shape and the discipline is holding:
 
-- **`calc-core`** is pure Rust, no I/O, no UI deps — exactly the right
-  shape to ship as a Swift library via UniFFI. The math is exact
-  (`Rational64` inches), so 1/3 + 1/3 + 1/3 = 1 with no float drift.
-  That's a real differentiator vs. cheaper calculators on the store.
-- **`calc-wasm`** lets the same engine drive the web app — useful for
-  marketing (try-before-you-buy demo) and for keeping a single source of
+- **`calc-core`** is pure Rust, `no_std`-capable, no I/O, no UI deps —
+  exactly the right shape to ship as a Swift/Kotlin library via UniFFI.
+  The math is exact (`Rational64` inches), so 1/3 + 1/3 + 1/3 = 1 with no
+  float drift. That's a real differentiator vs. cheaper store calculators.
+  `Value` is a tagged union — `Scalar / Length / Area / Volume / Angle` —
+  with dimension-aware promotion (`Length × Length = Area`,
+  `Area × Length = Volume`, `Volume ÷ Area = Length`, …).
+- **`calc-wasm`** drives the web app from the same engine (JSON event
+  protocol). Good for the try-before-you-buy demo and a single source of
   truth.
-- **`calc-cli`** is great for end-to-end testing without a UI.
-- **Frontend (SvelteKit)** is the current "reference UI." For iOS it
-  becomes a marketing site / web demo; the actual app will be native
-  SwiftUI on top of UniFFI bindings.
-- **Tests** — 75 Rust tests (71 in `calc-core` + 4 in `calc-uniffi`)
-  and 38 frontend TypeScript tests, all passing as of the latest
-  audit. Keep this discipline; App Review prefers crashes-never apps,
-  and Rust + property-style testing get you most of the way.
+- **`calc-uniffi`** exports a *typed* event API (no JSON) for Swift /
+  Kotlin. Bindings regenerate cleanly; verified on Linux against the `.so`.
+- **`calc-cli`** drives the engine from a terminal REPL — great for
+  end-to-end testing without a UI.
+- **Frontend (SvelteKit)** is the reference UI and the marketing demo /
+  PWA. The native iOS app is SwiftUI on top of the UniFFI bindings.
+- **iOS** sources are scaffolded (`ios/ConstructionCalc/`, ~920 lines of
+  hand-written SwiftUI against the real generated binding names) but have
+  **never hit a Swift compiler** — that step needs a Mac.
 
-**Recently shipped (this branch):**
+**Tests (all green as of this review):**
 
-- [x] Removed `mm` and `cm` units across engine, parser, formatter,
-      WASM bindings, CLI, and UI. `m` (meters) is the only metric unit
-      that remains.
-- [x] Removed 1/32" and 1/64" display resolutions. Added 1/4" and 1/8"
-      alongside the existing 1/16". Validation in `LengthFormat`
-      tightened to `denom ∈ {2, 4, 8, 16}`.
-- [x] The fraction buttons on the format strip now double as rounding
-      controls — pick 1/4" and any sum of whole + fraction renders
-      rounded to the nearest quarter inch. Internal value stays exact.
+- **78 Rust tests** (73 `calc-core` + 5 `calc-uniffi`) — includes the
+  angle-mode coverage from PR #13.
+- **40 frontend TypeScript tests**.
+- **CI**: 4 jobs — engine (fmt + clippy + test), wasm build, frontend
+  (typecheck + vitest + build), docker image — plus GitGuardian. All
+  passing. Keep this discipline; App Review rewards crash-never apps.
+
+**Recently landed — angle mode (PR #13):** the degrees/radians
+**angle-mode** preference is now wired end to end
+(`KeyEvent::SetAngleMode(bool)` → core → wasm → uniffi → CLI → web →
+iOS). This closed the one real engine gap found while scaffolding iOS.
+
+**Corrections to the previous roadmap (things that were already done but
+listed as TODO):**
+
+- ~~"Length × Length × Length → Volume — need a Volume variant of
+  `Value`."~~ **`Value::Volume` already exists** and `mul` promotes
+  Length³ → Volume today. The *actual* remaining gap is **display**:
+  Area always renders as `sq in`, Volume always as `cu in` — there's no
+  way to convert the display to ft²/yd³/acres/gallons. See §1.
+- ~~"Acres key — need an Area type for land."~~ The `Area` type exists;
+  what's missing is an **area display format** (ft², yd², acres) and a
+  convert key, same shape as `LengthFormat`.
 
 ---
 
-## 1. Near-term engine + web polish (1–2 weeks)
+## 1. Next up — prioritized
 
-These are the gaps to close *before* starting on the iOS app, so the
-engine you bind into Swift is the version you actually want to ship.
+This is the recommended order of attack. Items in **Track A need no Mac**
+and harden the engine/web *before* the FFI surface freezes into Swift, so
+you don't re-port later. **Track B is the iOS-native path**, blocked on
+having a Mac with Xcode.
 
-- [x] **Preferences screen** at `/preferences`, backed by
-      `localStorage` (key `cc.preferences.v1`). Settings: default
-      fraction resolution (1/4, 1/8, 1/16), default length format,
-      degrees vs radians. Applied on app startup via a `Convert`
-      KeyEvent — first render already shows the chosen mode. The
-      `Preferences` shape is the contract iOS will mirror against
+### Track A — engine + web (do now, no Mac required)
+
+1. **[x] Angle mode (degrees/radians)** — landed in PR #13. Everything
+   below builds on it.
+2. **[ ] Area & Volume display formats + convert keys.** *Biggest real
+   engine gap.* Add `AreaFormat` (in², ft², yd², acres) and `VolumeFormat`
+   (in³, ft³, yd³, gallons, liters), a `Convert`-style `KeyEvent` for
+   each, and `display_string` support. Wire through wasm + uniffi + CLI +
+   web format strip. This makes `10' × 12' = 120 sq ft` and
+   `slab = 1.23 cu yd` work in the *main* calculator, not just the EZ
+   forms (which currently shadow the conversion in JS). Do this **before**
+   building out the Swift UI — it changes the binding surface.
+3. **[ ] Cost-per-unit as a first-class engine function.** Today it's a
+   board-feet-only field. Generalize to `$/unit × quantity = $total` over
+   any dimension (linear ft, ft², yd³, each). Essential for an
+   "estimating" app and a frequent CMPro use case.
+4. **[ ] dms ↔ deg angle display toggle.** `Angle` already decomposes to
+   DMS; add an angle display mode (decimal degrees vs D°M'S") + a toggle
+   key. Pairs naturally with the now-wired angle mode from PR #13.
+5. **[ ] Tape export / share.** JSON + Markdown export already exist in
+   the engine. Wire a **download button** on web (`download.ts` is
+   already present) and an iOS **Share Sheet**. Low effort, high "feels
+   finished" payoff; also needed for the "hand a tape to the inspector"
+   story.
+6. **[ ] Verify compound miter end-to-end.** The Corner/Spring/Miter/Bevel
+   keys exist as enum variants and the keypad Miter page has the four
+   buttons — drive the full flow (enter 90° corner, 38° spring → confirm
+   ~31.6° miter / ~33.9° bevel) on web and add an integration test if one
+   is missing. Confirm it's a finished feature, not a stub.
+7. **[ ] Material-estimate gaps.** Add the remaining framing forms:
+   sheathing sheets, plates, headers (extend `/ez/studs` or a dedicated
+   `/ez/framing`). Generalize the baluster math into an **equal-spacing
+   on-center divider** usable for joists/pickets/studs.
+8. **[ ] Weight dimension** (pounds, kg, tons, metric tons). Needs a new
+   `Value::Weight` variant + format + convert key. Lower priority than the
+   above but a visible CMPro parity checkbox; rebar weight already wants
+   it. Doing it alongside the Area/Volume format work (#2) keeps the
+   "value formats" refactor to a single pass.
+
+### Track B — iOS native (blocked on a Mac)
+
+9. **[ ] Day one on the Mac** — `bash scripts/build-ios.sh` → create the
+   Xcode project → drag in `CalcEngine.xcframework` + the scaffolded
+   sources → run in the simulator. See §3 for the full checklist.
+10. **[ ] Real 1024×1024 PNG app icon** (currently an SVG placeholder).
+    Needed for both the App Store and a polished PWA install. Can be
+    designed off-Mac.
+11. **[ ] Port the 9 EZ Calc forms to SwiftUI**, then App Store Connect
+    setup + submission (§3.3–3.5).
+
+---
+
+## 2. Near-term engine + web polish (detail)
+
+Expanded detail for the Track A items above plus the smaller polish.
+
+- [x] **Preferences screen** at `/preferences`, backed by `localStorage`
+      (`cc.preferences.v1`): default fraction resolution (1/4, 1/8, 1/16),
+      default length format, degrees vs radians. Applied on startup. The
+      `Preferences` shape is the contract iOS mirrors against
       `UserDefaults`.
-- [x] **Saved tapes** at `/tapes`, backed by `localStorage` (key
-      `cc.tapes.v1`). `💾 Save` button in the tape toolbar prompts
-      for a name and persists the engine's JSON. The tapes page
-      lists newest-first with Load / Delete actions and a two-step
-      "Delete all". Size cap 1 MB per tape, 200 tapes total.
-- [x] **Polygon & Circle** surfaced via EZ Calc forms (/ez/polygon,
-      /ez/circle). Engine math at `operations/polygon.rs` /
-      `operations/circle.rs` shadowed in JS for live preview; results
-      pushed to tape on Save. A future improvement would add a
-      `PartialPolygon` / `PartialCircle` state machine so the keypad
-      can drive them directly the way Rafter does.
-- [x] **Board feet** EZ Calc form (/ez/board-feet) wraps
-      `operations/board_feet::board_feet`. Includes optional
-      cost-per-bf to compute total cost.
-- [x] **Memory keys (MS, MR, M+, MC, MC-All)** exposed via a new "Mem"
-      tab on the keypad. The engine has 4 slots — UI uses slot 0
-      since that's the universal calculator convention.
-- [ ] **Cost-per-unit** as a first-class engine function (currently a
-      board-feet-only field). Engine TODO from existing roadmap;
-      essential for "estimating" apps.
-- [ ] **dms ↔ deg** angle conversion key (visible in the CMPro
-      screenshot — the `dms◄►deg` label). The `Angle` type already
-      decomposes to DMS; just need a Mode toggle + button.
-- [ ] **Save/share tape** — JSON export already exists in `calc-wasm`;
-      wire up a Share Sheet on iOS, a download button on web.
-- [ ] **Compound miter** is partially implemented — finish wiring the
-      Corner / Spring / Miter / Bevel keys (they exist as enum variants
-      but the keypad Miter page just has those four buttons; verify the
-      flow end-to-end).
-- [ ] **Material estimates** (sheets, studs, roofing bundles) —
-      drywall is in /ez/drywall; add `/ez/studs` and `/ez/roofing` for
-      the remaining two engine functions.
+- [x] **Saved tapes** at `/tapes`, backed by `localStorage`
+      (`cc.tapes.v1`). `💾 Save` persists the engine's JSON; list is
+      newest-first with Load / Delete and a two-step "Delete all". Caps:
+      1 MB/tape, 200 tapes.
+- [x] **Polygon & Circle** EZ Calc forms (`/ez/polygon`, `/ez/circle`).
+      A future improvement: a `PartialPolygon` / `PartialCircle` state
+      machine so the keypad can drive them directly the way Rafter does.
+- [x] **Board feet** EZ Calc form with optional cost-per-bf.
+- [x] **Memory keys** (MS, MR, M+, MC, MC-All) on a "Mem" keypad tab.
+- [x] **Angle mode (degrees/radians)** — wired end to end in **PR #13**.
+- [ ] **Area & Volume display formats + convert** — see §1.2. The headline
+      engine gap: `Value::Area`/`Value::Volume` only render in²/in³ today.
+- [ ] **Cost-per-unit** as a first-class engine function — see §1.3.
+- [ ] **dms ↔ deg** angle display toggle — see §1.4.
+- [ ] **Save/share tape** — download button (web) + Share Sheet (iOS).
+- [ ] **Compound miter** end-to-end verification — see §1.6.
+- [ ] **Material estimates** — sheathing/plates/headers + generalized
+      equal-spacing divider — see §1.7.
+- [ ] **Service worker** for true offline support. The PWA currently
+      relies on the browser HTTP cache; a service worker makes it work
+      fully offline (and is a credible "works on a job site with no
+      signal" selling point).
 
 ---
 
-## 2. Feature parity with Construction Master Pro
+## 3. Feature parity with Construction Master Pro
 
-From the screenshot you sent, here's what CMPro has that we don't yet
-expose. Implement the ones marked `[ ]` to match the feature checklist
-reviewers compare on the store. Some are already in the engine and just
-need a button + help text.
+What CMPro exposes that we don't yet. `[x]` = shipped; `[ ]` = gap. Several
+gaps are engine-complete and just need a button + help text.
 
 ### Length / area / volume
 
 - [x] Feet-inch-fraction with rounding (1/4, 1/8, 1/16)
 - [x] Meters
 - [x] Yards
-- [ ] Acres key (engine: scalar × scalar → area; need an Area type for
-      land if we want it tagged)
-- [ ] Weight: pounds, kilograms, tons, metric tons (engine extension)
-- [ ] Volume: cubic yards (for concrete), gallons, liters
-- [ ] Length × Length × Length → Volume (currently returns generic; need
-      a Volume variant of `Value`)
+- [x] `Value::Area` / `Value::Volume` types with dimension promotion
+      (Length² → Area, Length³ → Volume) — **engine done**
+- [ ] **Area display formats** (in², ft², yd², acres) + convert key — the
+      types exist; only the formatter/convert event is missing
+- [ ] **Volume display formats** (in³, ft³, yd³ for concrete, gallons,
+      liters) + convert key
+- [ ] **Weight** dimension: pounds, kilograms, tons, metric tons
+      (`Value::Weight` + format + convert)
 
 ### Construction math
 
@@ -115,22 +179,24 @@ need a button + help text.
 - [x] Hip / Valley
 - [x] Jack rafter difference
 - [x] Stair layout
-- [x] Compound miter (corner + spring → miter + bevel)
+- [x] Compound miter (corner + spring → miter + bevel) — *verify the full
+      keypad flow end-to-end (§1.6)*
 - [x] Circle (radius, diameter, circumference, area, arc, chord, segment)
 - [x] Polygon (equilateral)
 - [x] Board feet
-- [x] Drywall estimation (in EZ Calc)
-- [x] Concrete volume (slab, column, cone) — engine module +
-      `/ez/concrete` form with cubic-yard output and waste factor
-- [x] Rebar spacing & count — `/ez/rebar` with bar size weight tables
-- [x] Baluster spacing — `/ez/baluster` enforcing IRC 4" sphere code
-- [x] Roof: roofing bundles + footprint × pitch multiplier
-      (`/ez/roofing`), stud count (`/ez/studs`)
-- [ ] Column / cone lateral surface area (currently volume only)
-- [ ] Equal-spacing on-center divider (for joists, picket fences,
-      etc.) — generalized form of baluster
-- [ ] Sheathing sheets, plates, headers — extend `/ez/studs` or
-      add a dedicated framing form
+- [x] Drywall estimation (`/ez/drywall`)
+- [x] Concrete volume (slab, column, cone) — `/ez/concrete`, cubic-yard
+      output + waste factor
+- [x] Rebar spacing & count — `/ez/rebar` with bar-size weight tables
+- [x] Baluster spacing — `/ez/baluster`, enforces IRC 4" sphere code
+- [x] Roofing bundles + footprint × pitch (`/ez/roofing`); stud count
+      (`/ez/studs`)
+- [ ] Column / cone **lateral surface area** (we compute volume only)
+- [ ] **Equal-spacing on-center divider** (joists, pickets, fences) —
+      generalized form of the baluster math
+- [ ] **Sheathing sheets, plates, headers** — extend `/ez/studs` or add a
+      dedicated framing form
+- [ ] **Cost-per-unit** estimating across any dimension (§1.3)
 
 ### UI / UX
 
@@ -140,103 +206,84 @@ need a button + help text.
 - [x] Physical keyboard support (web)
 - [x] Saved tapes list (named, persisted at `/tapes`)
 - [x] Settings tab (`/preferences`)
-- [x] PWA install support — `static/manifest.webmanifest` +
-      icons, installable on iOS Safari (Add to Home Screen),
-      Android Chrome (Install app), and desktop Chrome / Edge
-- [x] About / marketing page at `/about` for the App Store
-      cross-link
-- [ ] Per-key secondary functions exposed via the small red label above
-      the key — like CMPro's `Slope` over `Pitch`, `R/Wall` over `Rise`,
-      etc. On iOS this is a long-press; the existing long-press
-      infrastructure can be repurposed to *invoke* the secondary key
-      instead of just showing help.
-- [ ] Help tab (full reference manual)
-- [ ] Real PNG app icon (currently an SVG placeholder; iOS Safari
-      uses it for Add-to-Home-Screen but Apple prefers 180×180 PNG)
-- [ ] Service worker for true offline support (currently relies on
-      browser HTTP cache)
+- [x] PWA install support (`manifest.webmanifest` + icons; installable on
+      iOS Safari, Android Chrome, desktop Chrome/Edge)
+- [x] About / marketing page at `/about`
+- [ ] **Per-key secondary functions** via the small red label above a key
+      (CMPro's `Slope` over `Pitch`, `R/Wall` over `Rise`, …). On iOS this
+      is a long-press; repurpose the existing long-press infra to *invoke*
+      the secondary key instead of only showing help.
+- [ ] **Help tab** — a full in-app reference manual (the long-press help
+      strings already exist; collect them into a browsable screen).
+- [ ] **Real PNG app icon** — 1024×1024 master + the auto-generated iOS
+      sizes; Apple prefers 180×180 PNG over the current SVG placeholder.
+- [ ] **Service worker** for true offline (§2).
 
 ---
 
-## 3. iOS App Store release plan
+## 4. iOS App Store release plan
 
-Goal: **paid app, $4.99 USD one-time, available worldwide.** No
-subscription, no in-app purchase, no ads.
+Goal: **paid app, $4.99 USD one-time, worldwide.** No subscription, no
+IAP, no ads.
 
-### 3.1 Architecture
+### 4.1 Architecture
 
 ```
-crates/calc-core           ← already done, pure Rust
-crates/calc-uniffi (new)   ← UniFFI wrapper, exports Swift bindings
-ios/                       ← Xcode project, SwiftUI app
+crates/calc-core      ← done, pure Rust
+crates/calc-uniffi    ← done, UniFFI wrapper → Swift bindings
+ios/                  ← Xcode project, SwiftUI app (scaffolded, uncompiled)
 ```
 
-- [x] **Create `crates/calc-uniffi`.** Proc-macro mode UniFFI wrapper
-      around `calc-core` exporting `Calculator`, `KeyEvent`,
-      `LengthFormat`, `Unit`, `FunctionKey`, `MemoryOp`, `Snapshot`,
-      `CalcFfiError`. 4 end-to-end tests confirm the wrapper works
-      identically to the WASM version.
-- [x] **Hand-rolled xcframework build script** at `scripts/build-ios.sh`.
-      Builds arm64-device + arm64-sim + x86_64-sim slices, lipos the
-      sim slices, runs `uniffi-bindgen generate --language swift`, and
-      assembles the final `CalcEngine.xcframework`. No external tool
-      dependencies beyond Xcode + Rust. Runs on macOS only — verified
-      bindings generation end-to-end in CI on Linux against the
-      `.so` (Swift output looks correct: `Calculator` class +
-      `handle(event:)` method + all enums).
-- [ ] **Install iOS Rust targets on the build Mac.** `scripts/build-ios.sh`
-      now does this for you (`rustup target add` is idempotent), but for
-      reference the targets are: `aarch64-apple-ios`,
-      `aarch64-apple-ios-sim`, `x86_64-apple-ios`.
-- [ ] **Create the Xcode project** under `ios/ConstructionCalc/`. Use
-      SwiftUI. iOS 17+ target is fine (lets you use latest APIs; cuts
-      out only ~5% of users at this point).
-- [ ] **Wire up the bindings.** Import `CalcEngine.xcframework`,
-      instantiate `Calculator` once in an `@Observable` view model,
-      send `KeyEvent`s on button taps.
+- [x] **`crates/calc-uniffi`** — proc-macro UniFFI wrapper exporting
+      `Calculator`, `KeyEvent`, `LengthFormat`, `Unit`, `FunctionKey`,
+      `MemoryOp`, `Snapshot`, `CalcFfiError`. 4 end-to-end tests (5 with
+      PR #13's angle-mode test).
+- [x] **`scripts/build-ios.sh`** — builds arm64-device + arm64-sim +
+      x86_64-sim slices, lipos the sim pair, runs `uniffi-bindgen
+      generate --language swift`, assembles `CalcEngine.xcframework`.
+      Auto-installs the iOS Rust targets (idempotent). macOS-only; bindings
+      generation verified on Linux against the `.so`.
+- [ ] **Install iOS Rust targets on the Mac** — handled by the script;
+      for reference: `aarch64-apple-ios`, `aarch64-apple-ios-sim`,
+      `x86_64-apple-ios`.
+- [ ] **Create the Xcode project** under `ios/ConstructionCalc/`, SwiftUI,
+      iOS 17+ target.
+- [ ] **Wire up the bindings** — import `CalcEngine.xcframework`,
+      instantiate `Calculator` once in an `@Observable` view model, send
+      `KeyEvent`s on taps.
 
 #### Day-one-on-the-Mac checklist
 
-Everything that *can* be verified off-Mac has been. When the laptop
-arrives, work top to bottom:
-
-1. `xcode-select --install` (or install full Xcode from the App Store).
-2. From the repo root: `bash scripts/build-ios.sh`. It installs the
-   Rust targets, builds all three slices, generates the Swift
-   bindings, and assembles `ios/CalcEngine.xcframework`. The generated
-   artifacts are already gitignored.
-3. If the build fails, the most likely culprits (none reproducible off
-   a Mac, so flagged here):
-   - **`panic = "abort"` vs UniFFI.** The workspace release profile in
-     `Cargo.toml` sets `panic = "abort"` (great for wasm size). UniFFI
-     wraps exported calls in `catch_unwind` to turn Rust panics into
-     Swift errors — with `abort`, a panic crashes the whole app
-     instead. The engine returns `Result` for every fallible path and
-     overflow wraps (not panics) in release, so this is *unlikely* to
-     bite, but if you see hard crashes on device, add an
+1. `xcode-select --install` (or full Xcode from the App Store).
+2. From repo root: `bash scripts/build-ios.sh`. Installs targets, builds
+   all three slices, generates Swift bindings, assembles
+   `ios/CalcEngine.xcframework` (artifacts are gitignored).
+3. Likely first-run snags (none reproducible off a Mac):
+   - **`panic = "abort"` vs UniFFI `catch_unwind`.** The release profile
+     in `Cargo.toml` sets `panic = "abort"` (good for wasm size). UniFFI
+     turns Rust panics into Swift errors via `catch_unwind`; with `abort`
+     a panic crashes the app instead. The engine returns `Result` on every
+     fallible path and overflow *wraps* (not panics) in release, so this
+     is unlikely — but if you see hard crashes on device, add an
      iOS-specific profile with `panic = "unwind"` and rebuild.
-   - **Bitcode / minimum deployment target** mismatches — set the
-     framework's min iOS version to match the app target.
-4. Drag `ios/CalcEngine.xcframework` into the Xcode project's
-   *General → Frameworks, Libraries, and Embedded Content*, and add
-   `ios/Sources/CalcEngine/CalcEngine.swift` to the target's sources.
-5. Smoke-test in the simulator: `import CalcEngine`, then
-   `let calc = Calculator(); calc.handle(event: .digit(value: 5))` and
-   confirm `displayString()` returns `"5"`.
+   - **Min deployment target** — set the framework's min iOS version to
+     match the app target.
+4. Drag `ios/CalcEngine.xcframework` into *General → Frameworks, Libraries,
+   and Embedded Content*; add `ios/Sources/CalcEngine/CalcEngine.swift` to
+   the target.
+5. Smoke test: `let calc = Calculator(); calc.handle(event: .digit(value:
+   5))` → `displayString()` returns `"5"`.
 
-The TypeScript shapes the iOS UI should mirror are already settled and
-won't drift: see `frontend/src/lib/calc.ts` (`Key`/`Unit`/`FunctionKey`)
-and `frontend/src/lib/preferences.ts` (`Preferences` →
-`UserDefaults`). The web `Keypad.svelte` / `FormatStrip.svelte` are the
-reference layouts to port.
+The TypeScript shapes the iOS UI mirrors are settled: see
+`frontend/src/lib/calc.ts` (`Key`/`Unit`/`FunctionKey`) and
+`frontend/src/lib/preferences.ts` (`Preferences` → `UserDefaults`).
+`Keypad.svelte` / `FormatStrip.svelte` are the reference layouts.
 
-### 3.2 SwiftUI app structure
+### 4.2 SwiftUI app structure
 
-- [x] **Scaffolded the SwiftUI sources** under `ios/ConstructionCalc/`
-      (committed; compiles once `CalcEngine.xcframework` is linked).
-      Written against the *exact* generated binding API (verified by
-      regenerating the Swift from the `.so` on Linux). See
-      `ios/README.md` for the click-by-click Xcode assembly steps.
+- [x] **Scaffolded** under `ios/ConstructionCalc/` (compiles once
+      `CalcEngine.xcframework` is linked; written against the regenerated
+      binding API). See `ios/README.md` for the click-by-click assembly.
 
 ```
 ios/ConstructionCalc/
@@ -258,140 +305,112 @@ ios/ConstructionCalc/
     └── PreferencesView.swift      ← settings sheet                  [done]
 ```
 
-- [x] **Haptics on key press** — `UIImpactFeedbackGenerator(.light)`
-      in `Haptics.swift`, fired from the view model's `send`.
-- [ ] **EZ Calc forms** — the 9 web forms (`/ez/*`) aren't ported yet;
-      they're pure-Swift arithmetic + a tape note, easy to add as a
-      navigation list once the core app builds.
-- [ ] **Keyboard support** via `.keyboardShortcut` on each button (for
-      iPad with hardware keyboard).
-- [ ] **iPad layout** — wider keypad, two-pane (calculator + tape side
-      by side). Universal binary; same purchase covers iPhone + iPad.
-- [ ] **App icon + Assets.xcassets** — reuse the web SVG mark as a
-      starting point; needs a 1024×1024 PNG for the store.
-- [ ] **Light mode** — the app is dark-locked today
-      (`preferredColorScheme(.dark)`); add a light palette later.
+- [x] **Haptics on key press** — `UIImpactFeedbackGenerator(.light)`.
+- [x] **Angle-mode preference applied at launch + live** — via PR #13
+      (`Preferences.toAngleModeKey()`, `setAngleMode(degrees:)`).
+- [ ] **EZ Calc forms** — the 9 web forms aren't ported yet; pure-Swift
+      arithmetic + a tape note, easy to add as a navigation list once the
+      core app builds.
+- [ ] **Keyboard support** via `.keyboardShortcut` (iPad hardware keyboard).
+- [ ] **iPad layout** — wider keypad, two-pane (calculator + tape).
+      Universal binary; one purchase covers iPhone + iPad.
+- [ ] **App icon + Assets.xcassets** — needs the 1024×1024 PNG.
+- [ ] **Light mode** — dark-locked today (`preferredColorScheme(.dark)`);
+      add a light palette.
 
-> **Engine gap CLOSED (angle mode).** The degrees/radians preference is
-> now wired end to end: `KeyEvent::SetAngleMode(bool)` in `calc-core`
-> (with handler + tests), surfaced through `calc-wasm`, `calc-uniffi`,
-> and the CLI (`angle deg|rad`). The web app and iOS both send it at
-> launch and live from the preferences screen, so the toggle actually
-> changes how trig keys read a plain number. Verified by tests that
-> compare `sin(30)` in degrees (0.5) vs radians (≈ −0.988).
+### 4.3 App Store Connect setup
 
-### 3.3 App Store Connect setup
-
-- [ ] **Apple Developer Program** membership ($99/year — required to
-      publish). Sign up at developer.apple.com.
-- [ ] **App ID** — `com.<yourname>.constructioncalc` (replace with
-      your reverse-DNS).
+- [ ] **Apple Developer Program** ($99/year). developer.apple.com.
+- [ ] **App ID** — `com.<yourname>.constructioncalc`.
 - [ ] **App Store Connect listing.**
-  - Name: `Construction Calc` (check availability — may need a
-    qualifier like `Construction Calc Pro` or `BuildCalc`)
-  - Subtitle (30 chars): something like `Exact rational math for builders`
+  - Name: `Construction Calc` (check availability — may need `…Pro` or
+    `BuildCalc`)
+  - Subtitle (30 chars): e.g. `Exact rational math for builders`
   - Category: Productivity (primary), Utilities (secondary)
   - Age rating: 4+
-- [ ] **Pricing.** Tier 5 (= $4.99 USD). Set to "Available in all
-      countries" — App Store maps the tier to local currency
-      automatically. No introductory pricing, no auto-renewing.
-- [ ] **App icon.** Required sizes: 1024×1024 (App Store) plus the
-      auto-generated iOS sizes via an `AppIcon.appiconset`. Design
-      should look good at 60×60 home-screen size.
-- [ ] **Screenshots.** Required: 6.7" iPhone (1290×2796) + 6.9" iPhone
-      (1320×2868). iPad 13" (2064×2752) strongly recommended since the
-      app is universal. 3–10 screenshots per device.
-- [ ] **App Preview video** (optional but boosts conversion ~20%):
-      15–30s screen recording.
-- [ ] **Privacy nutrition label.** Almost certainly "Data Not
-      Collected" — we don't have analytics, login, or network calls.
-      That's a selling point; lean into it on the listing.
-- [ ] **Privacy Policy URL** — required even for no-data apps. Host a
-      one-page policy at e.g. `nuniesmith.github.io/construction-calc/
-      privacy`.
-- [ ] **Support URL** — link to a GitHub issues page or simple contact
-      page.
+- [ ] **Pricing.** Tier 5 (≈ $4.99 USD), "Available in all countries". No
+      introductory pricing, no auto-renew.
+- [ ] **App icon** — 1024×1024 + the auto-generated set. Must read well at
+      60×60.
+- [ ] **Screenshots.** 6.7" iPhone (1290×2796) + 6.9" (1320×2868). iPad
+      13" (2064×2752) strongly recommended (universal app). 3–10 each.
+- [ ] **App Preview video** (optional, ~+20% conversion): 15–30s.
+- [ ] **Privacy nutrition label.** "Data Not Collected" — no analytics,
+      login, or network. Lean into it.
+- [ ] **Privacy Policy URL** (required even for no-data apps) — host a
+      one-pager, e.g. `nuniesmith.github.io/construction-calc/privacy`.
+- [ ] **Support URL** — GitHub issues or a contact page.
 
-### 3.4 Pre-submission checklist
+### 4.4 Pre-submission checklist
 
-- [ ] **No crashes** in a 10-minute manual smoke test on a physical
-      device. Test all keypad pages, all unit combinations, save/share
-      tape, settings persistence.
-- [ ] **No `print()` / `NSLog` calls** in the shipped binary.
-- [ ] **Memory leak check** with Instruments → Leaks. The Rust engine
-      is leak-free by construction; check Swift side.
-- [ ] **VoiceOver / accessibility pass** — each key has an
-      `accessibilityLabel`. Apple checks this in review.
-- [ ] **Dynamic Type** support — display text scales with the system
-      font size setting.
-- [ ] **Light + dark mode** both look correct.
-- [ ] **Test on the smallest supported device** (iPhone SE 3rd gen,
-      4.7") — keypad mustn't overflow.
-- [ ] **App Store guidelines pass** — read sections 4 (Design) and 5
-      (Legal) of the App Review Guidelines. Calculators are generally
-      low-risk but reviewers reject for missing privacy policy, broken
-      links, or asking for unnecessary permissions.
+- [ ] **No crashes** in a 10-min manual smoke test on a physical device
+      (all keypad pages, all unit combos, save/share tape, settings
+      persistence).
+- [ ] **No `print()` / `NSLog`** in the shipped binary.
+- [ ] **Memory leak check** with Instruments → Leaks (Rust side is
+      leak-free by construction; check Swift).
+- [ ] **VoiceOver / accessibility** — every key has an
+      `accessibilityLabel`.
+- [ ] **Dynamic Type** — display text scales with system font size.
+- [ ] **Light + dark mode** both correct.
+- [ ] **Smallest device** (iPhone SE 3rd gen, 4.7") — keypad must not
+      overflow.
+- [ ] **App Review Guidelines** §4 (Design) + §5 (Legal). Calculators are
+      low-risk; rejections usually = missing privacy policy, broken links,
+      or unneeded permissions.
 
-### 3.5 Submission & rollout
+### 4.5 Submission & rollout
 
-- [ ] First TestFlight build to yourself + 1-2 trusted testers
-      (friends in trades — they'll find bugs the testing won't).
-- [ ] Internal TestFlight: at least one full week of beta before
-      submitting for review.
-- [ ] Submit for review. Expected turnaround: 24–48 hours in 2026.
-- [ ] **Auto-release after approval** OR **manual release** — choose
-      manual so you can pick a launch day (Tuesday or Wednesday is
-      typical for press attention).
+- [ ] First TestFlight build to yourself + 1–2 trades friends (they'll
+      find bugs).
+- [ ] At least one full week of internal TestFlight before review.
+- [ ] Submit for review (24–48h turnaround in 2026).
+- [ ] **Manual release** so you can pick a launch day (Tue/Wed is typical).
 - [ ] Launch-day artifacts:
-  - [ ] Update README with App Store badge + link
-  - [ ] Post on r/Construction, r/HomeImprovement, HN Show
-  - [ ] Tweet / LinkedIn announcement
-  - [ ] (Optional) reach out to ToolGuyd, This Old House, Pro Tool
-        Reviews — they cover construction apps occasionally
+  - [ ] README App Store badge + link
+  - [ ] r/Construction, r/HomeImprovement, HN Show
+  - [ ] Tweet / LinkedIn
+  - [ ] (Optional) ToolGuyd, This Old House, Pro Tool Reviews outreach
 
-### 3.6 Why $4.99 one-time will work
+### 4.6 Why $4.99 one-time will work
 
-The competitors (Construction Master Pro, BuildCalc Pro, etc.) are
-$24.99–$29.99 one-time or $4.99/month subscriptions. Positioning:
+Competitors (Construction Master Pro, BuildCalc Pro) are $24.99–$29.99
+one-time or $4.99/month. Positioning:
 
-- **Sub-$5 impulse buy** — the price where people don't think twice
-- **No subscription** — every Amazon review of competitor apps
-  complains about the recurring charge. This is your wedge.
-- **Forever updates** — Apple's StoreKit model means paid app
-  customers get all future updates for free. Embrace it as marketing
-  copy: "Buy once. Yours forever."
-- **Local-only, no tracking** — the privacy nutrition label is a
-  marketing asset.
+- **Sub-$5 impulse buy** — below the think-twice threshold.
+- **No subscription** — every competitor's reviews complain about the
+  recurring charge. This is the wedge.
+- **Forever updates** — paid-app StoreKit gives buyers all future updates
+  free. "Buy once. Yours forever."
+- **Local-only, no tracking** — the privacy label is a marketing asset.
 
-The risk is that $4.99 is below the threshold where customers assume
-quality. Counter that with:
-- A polished icon
-- Real screenshots showing the exact-rational result (`1/3 + 1/3 + 1/3
-  = 1"`, not `0.999"`)
-- Mention "exact rational math" in the subtitle / description
+Counter the "too cheap to be good" risk with a polished icon, real
+screenshots of the exact-rational result (`1/3 + 1/3 + 1/3 = 1"`, not
+`0.999"`), and "exact rational math" in the subtitle / description.
 
 ---
 
-## 4. Android (later, after iOS is stable)
+## 5. Android (after iOS is stable)
 
-- [ ] `crates/calc-uniffi` already produces Kotlin bindings — re-use.
+- [ ] `crates/calc-uniffi` already produces Kotlin bindings — reuse.
 - [ ] Compose Multiplatform UI, or Jetpack Compose Android-only.
-- [ ] Google Play submission: $25 one-time dev fee, similar checklist.
-- [ ] Price-match $4.99 on Play.
+- [ ] Google Play submission ($25 one-time dev fee), similar checklist.
+- [ ] Price-match $4.99.
 
 ---
 
-## 5. Long-term ideas
+## 6. Long-term ideas
 
-- [ ] Cloud-free **iCloud sync of saved tapes** via CloudKit (no
-      server needed; opt-in).
-- [ ] **Tape templates** — save a calculation as a template ("garage
-      slab"), recall later with new inputs.
-- [ ] **PDF export** of a tape for handing to a client / inspector.
-- [ ] **Apple Watch companion** — read-only display of the last
-      result, voice memo to start a new tape.
-- [ ] **macOS Catalyst** build — same codebase, free additional
-      platform.
-- [ ] **Open-source the engine** (`calc-core`) under MIT, keep the
-      iOS/Android app shells closed-source. Engine OSS is a credibility
-      signal and useful for contributions to obscure formulas.
+- [ ] **iCloud sync of saved tapes** via CloudKit (no server; opt-in).
+- [ ] **Tape templates** — save a calc as a template ("garage slab"),
+      recall later with new inputs.
+- [ ] **PDF export** of a tape for a client / inspector.
+- [ ] **Apple Watch companion** — read-only last result; voice memo to
+      start a tape.
+- [ ] **macOS Catalyst** build — same codebase, free extra platform.
+- [ ] **Open-source `calc-core`** under MIT, keep the app shells closed.
+      Engine OSS is a credibility signal.
+- [ ] **Property-based tests** (e.g. `proptest`) for the engine — random
+      dimensional expressions that must round-trip / preserve invariants.
+      Cheap insurance for a "never wrong" calculator before the paid
+      launch.
