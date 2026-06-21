@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import CalcEngine
 
 /// Observable wrapper around the UniFFI `Calculator`.
 ///

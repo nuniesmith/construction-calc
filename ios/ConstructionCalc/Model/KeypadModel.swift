@@ -1,5 +1,4 @@
 import Foundation
-import CalcEngine
 
 /// Visual category for a key, driving its tint. Mirrors the `style` field on
 /// the web `Keypad.svelte` button specs.

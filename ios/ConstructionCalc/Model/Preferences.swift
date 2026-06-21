@@ -1,5 +1,4 @@
 import Foundation
-import CalcEngine
 
 /// Which length format the calculator opens in. Raw values match the
 /// `DefaultLengthFormat` string union in `frontend/src/lib/preferences.ts`

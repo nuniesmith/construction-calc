@@ -1,5 +1,4 @@
 import SwiftUI
-import CalcEngine
 
 /// The button grid. Faithful port of `Keypad.svelte`: a page picker
 /// (Rafter / Trig / Miter / Mem) over a 6-column grid of shared rows.

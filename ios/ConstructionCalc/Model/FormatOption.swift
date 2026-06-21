@@ -1,5 +1,4 @@
 import Foundation
-import CalcEngine
 
 /// One chip in the display-format strip. Mirrors the `choices` array in
 /// `frontend/src/lib/FormatStrip.svelte`: 1/4", 1/8", 1/16", dec ft,
