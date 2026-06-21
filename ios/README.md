@@ -1,5 +1,12 @@
 # iOS app — Construction Calc
 
+> **Shipping without a Mac?** The project + build are now headless: `project.yml`
+> (XcodeGen) generates the Xcode project, and `.github/workflows/ios.yml` builds,
+> signs, and uploads to TestFlight on a macOS cloud runner. See
+> **[`docs/IOS-TESTFLIGHT.md`](../docs/IOS-TESTFLIGHT.md)** for the full no-Mac
+> setup. The manual Xcode steps below are now just the optional local-dev path on a
+> Mac (and a reference for what the project contains).
+
 SwiftUI front-end for the `calc-core` engine, via the `calc-uniffi`
 bindings. **These Swift sources are written and committed off-Mac; they
 compile once the `CalcEngine.xcframework` is built and linked.** Nothing

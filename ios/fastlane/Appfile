@@ -1,0 +1,3 @@
+# The team + identity come from the App Store Connect API key at runtime, so only
+# the app identifier is pinned here.
+app_identifier("com.nuniesmith.constructioncalc")

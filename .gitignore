@@ -22,6 +22,14 @@ ios/CalcEngine.xcframework/
 ios/headers/
 ios/Sources/CalcEngine/
 
+# Generated Xcode project (XcodeGen from ios/project.yml) + fastlane / gym outputs.
+ios/*.xcodeproj/
+ios/build/
+ios/fastlane/report.xml
+ios/fastlane/Preview.html
+ios/fastlane/test_output/
+ios/*.mobileprovision
+
 # Xcode user state
 *.xcuserstate
 xcuserdata/
