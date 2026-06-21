@@ -1,0 +1,44 @@
+# fastlane — build ConstructionCalc and ship it to TestFlight.
+#
+# Runs on a macOS CI runner AFTER the workflow has (1) built the xcframework via
+# scripts/build-ios.sh, (2) run `xcodegen generate`, and (3) installed the
+# distribution certificate + provisioning profile into a temporary keychain.
+# Signing is manual + deterministic (the cert/profile from secrets); the upload
+# authenticates with an App Store Connect API key — no Apple ID password, no 2FA,
+# no Mac required to operate.
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build a Release archive and upload it to TestFlight"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_CONTENT"), # base64 of the .p8
+      is_key_content_base64: true
+    )
+
+    build_app(
+      project: "ConstructionCalc.xcodeproj",
+      scheme: "ConstructionCalc",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "ConstructionCalc.ipa",
+      # TestFlight requires a unique build number per version — use the CI run number.
+      xcargs: "CURRENT_PROJECT_VERSION=#{ENV.fetch('BUILD_NUMBER', '1')}",
+      export_options: {
+        provisioningProfiles: {
+          "com.nuniesmith.constructioncalc" => ENV.fetch("PROVISIONING_PROFILE_NAME")
+        }
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      # The build keeps processing on Apple's side after upload; don't block CI on it.
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

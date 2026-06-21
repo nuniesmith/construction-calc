@@ -31,7 +31,11 @@ use calc_core::format::{
     VolumeFormat as CoreVolumeFormat, WeightFormat as CoreWeightFormat,
 };
 
-uniffi::setup_scaffolding!("calc_uniffi");
+// The UniFFI namespace IS the generated Swift module name — it must match the
+// Swift app's `import CalcEngine` and the `CalcEngine*` filenames that
+// `scripts/build-ios.sh` moves into the xcframework. (The crate is still
+// `calc_uniffi` / `libcalc_uniffi.a`; the namespace is independent of that.)
+uniffi::setup_scaffolding!("CalcEngine");
 
 // ---------------------------------------------------------------------------
 // Event enums — flat, Swift-friendly mirrors of the core types.
