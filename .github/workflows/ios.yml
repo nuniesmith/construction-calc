@@ -91,7 +91,14 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           # Point fastlane/gym at the temp keychain we just populated.
           FASTLANE_KEYCHAIN_PATH: ${{ runner.temp }}/app-signing.keychain-db
-        run: fastlane beta
+        run: |
+          # Decode the App Store Connect API key to a real .p8 file. fastlane's altool
+          # upload path doesn't base64-decode key_content itself (#30066), so we hand
+          # it a decoded file via key_filepath instead.
+          echo -n "$ASC_KEY_CONTENT" | base64 --decode -o "$RUNNER_TEMP/asc_api_key.p8"
+          export ASC_KEY_PATH="$RUNNER_TEMP/asc_api_key.p8"
+          head -1 "$ASC_KEY_PATH" | grep -q "BEGIN PRIVATE KEY" || { echo "decoded .p8 looks wrong"; exit 1; }
+          fastlane beta
 
       - name: Upload build artifacts (.ipa + logs)
         if: always()
