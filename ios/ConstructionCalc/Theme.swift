@@ -76,7 +76,10 @@ struct CalcTheme {
         chipInactive: Color.black.opacity(0.06),
         chipText: Color(white: 0.25),
         keyText: .white,
-        subNormal: Color(red: 0.74, green: 0.20, blue: 0.15),
+        // Light coral: the keys here are mid-tone, so a dark red sinks into them.
+        // A high-luminance warm red keeps the "red secondary" identity but stays
+        // legible on slate / indigo / steel keys.
+        subNormal: Color(red: 1.0, green: 0.72, blue: 0.64),
         numKey: Color(red: 0.42, green: 0.45, blue: 0.48),
         unitKey: Color(red: 0.30, green: 0.42, blue: 0.55),
         funcKey: Color(red: 0.34, green: 0.34, blue: 0.58),
