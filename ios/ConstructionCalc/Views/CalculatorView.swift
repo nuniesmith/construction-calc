@@ -8,7 +8,7 @@ struct CalculatorView: View {
 
     @State private var showTape = false
     @State private var showPreferences = false
-    @State private var showConcrete = false
+    @State private var showCalcs = false
     @State private var showHelp = false
     /// Non-nil while a long-press help entry is being shown.
     @State private var helpId: String?
@@ -28,7 +28,7 @@ struct CalculatorView: View {
         .background(Color(red: 0.04, green: 0.05, blue: 0.10).ignoresSafeArea())
         .sheet(isPresented: $showTape) { TapeView() }
         .sheet(isPresented: $showPreferences) { PreferencesView() }
-        .sheet(isPresented: $showConcrete) { ConcreteCalcView() }
+        .sheet(isPresented: $showCalcs) { CalcsMenuView() }
         .sheet(isPresented: $showHelp) { HelpReferenceView() }
         .sheet(item: helpBinding) { item in
             HelpOverlayView(entry: item.entry)
@@ -40,10 +40,10 @@ struct CalculatorView: View {
             Text("Construction Calc")
                 .font(.headline)
             Spacer()
-            Button { showConcrete = true } label: {
-                Image(systemName: "cube")
+            Button { showCalcs = true } label: {
+                Image(systemName: "square.grid.2x2")
             }
-            .accessibilityLabel("Concrete calculator")
+            .accessibilityLabel("Construction calculators")
             Button { showHelp = true } label: {
                 Image(systemName: "questionmark.circle")
             }
