@@ -7,6 +7,9 @@ struct KeypadView: View {
     @Binding var helpId: String?
 
     @State private var page: KeypadPage = .rafter
+    /// When armed by the "2nd" key, a key with a red secondary label sends that
+    /// secondary event instead of its primary one.
+    @State private var secondMode = false
 
     private var rows: [[KeypadButton]] {
         [KeypadModel.functionRow(for: page)] + KeypadModel.sharedRows
@@ -27,7 +30,7 @@ struct KeypadView: View {
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     GridRow {
                         ForEach(row) { button in
-                            KeyButton(button: button, helpId: $helpId)
+                            KeyButton(button: button, helpId: $helpId, secondMode: $secondMode)
                                 .gridCellColumns(button.columns)
                         }
                     }
@@ -42,27 +45,37 @@ struct KeypadView: View {
 }
 
 /// A single key. Tap sends the event through the view model; long-press
-/// raises the help id. Filler cells (no event) render invisibly so the grid
-/// stays aligned.
+/// raises the help id. Filler cells render invisibly so the grid stays
+/// aligned. Keys with a `sub` label show it small above the main label (red
+/// normally, yellow while the "2nd" shift is armed); tapping such a key while
+/// armed fires its secondary event instead of the primary one.
 private struct KeyButton: View {
     @Environment(CalculatorViewModel.self) private var vm
     let button: KeypadButton
     @Binding var helpId: String?
+    @Binding var secondMode: Bool
 
     var body: some View {
-        if button.event == nil && button.style == .filler {
+        if button.style == .filler {
             Color.clear.frame(maxWidth: .infinity, minHeight: 48)
         } else {
-            Button {
-                if let event = button.event { vm.send(event) }
-            } label: {
-                Text(button.label)
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8).fill(background)
-                    )
-                    .foregroundStyle(.white)
+            Button(action: tap) {
+                VStack(spacing: 1) {
+                    if let sub = button.sub {
+                        Text(sub)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(subColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    Text(button.label)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 8).fill(fill)
+                )
             }
             .buttonStyle(.plain)
             .onLongPressGesture(minimumDuration: 0.4) {
@@ -71,7 +84,36 @@ private struct KeyButton: View {
         }
     }
 
-    private var background: Color {
+    /// Routes the tap: the "2nd" key toggles shift; an armed shift fires a key's
+    /// secondary event (then disarms); otherwise the primary event fires.
+    private func tap() {
+        if button.shift {
+            secondMode.toggle()
+        } else if secondMode, let secondary = button.secondary {
+            vm.send(secondary)
+            secondMode = false
+        } else if let event = button.event {
+            vm.send(event)
+            if secondMode { secondMode = false }
+        }
+    }
+
+    /// Secondary caption tint: brighter yellow while armed so the live alternate
+    /// functions stand out; a muted red otherwise.
+    private var subColor: Color {
+        secondMode
+            ? Color(red: 0.99, green: 0.83, blue: 0.30)
+            : Color(red: 0.95, green: 0.45, blue: 0.40)
+    }
+
+    /// Key fill. The "2nd" key glows yellow while armed; everything else uses
+    /// its category tint.
+    private var fill: Color {
+        if button.shift {
+            return secondMode
+                ? Color(red: 0.99, green: 0.83, blue: 0.30)
+                : Color(red: 0.85, green: 0.47, blue: 0.02)
+        }
         switch button.style {
         case .function: return Color(red: 0.23, green: 0.23, blue: 0.54)
         case .unit:     return Color(red: 0.28, green: 0.35, blue: 0.46)

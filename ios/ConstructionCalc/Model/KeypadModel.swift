@@ -22,14 +22,25 @@ struct KeypadButton: Identifiable {
     let columns: Int
     /// Key into `HelpText.entries` for the long-press overlay.
     let helpId: String?
+    /// Secondary ("2nd"-shift) label, shown small in red above the key — the
+    /// ProjectCalc convention. Nil = no secondary.
+    let sub: String?
+    /// Event sent instead of `event` when the 2nd shift is armed.
+    let secondary: KeyEvent?
+    /// True only for the "2nd" key itself, which toggles secondary mode.
+    let shift: Bool
 
     init(_ label: String, _ event: KeyEvent?, _ style: KeyStyle,
-         columns: Int = 1, help: String? = nil) {
+         columns: Int = 1, help: String? = nil,
+         sub: String? = nil, secondary: KeyEvent? = nil, shift: Bool = false) {
         self.label = label
         self.event = event
         self.style = style
         self.columns = columns
         self.helpId = help
+        self.sub = sub
+        self.secondary = secondary
+        self.shift = shift
     }
 
     /// A blank, non-interactive cell.
@@ -101,8 +112,8 @@ enum KeypadModel {
             KeypadButton("Feet", .unit(unit: .feet), .unit, help: "ft"),
             KeypadButton("Inch", .unit(unit: .inch), .unit, help: "in"),
             KeypadButton("m", .unit(unit: .meters), .unit, help: "m"),
-            .filler(),
-            .filler()
+            KeypadButton("Cost", .costPerUnit, .unit, help: "cost"),
+            KeypadButton("2nd", nil, .op, help: "shift", shift: true)
         ],
         [
             KeypadButton("C", .clear, .control, help: "c"),
@@ -121,10 +132,15 @@ enum KeypadModel {
             KeypadButton("−", .op(op: .sub), .op)
         ],
         [
-            digit(7), digit(8), digit(9), digit(4), digit(5), digit(6)
+            digit(7), digit(8), digit(9),
+            digit(4, sub: "lb", secondary: .weightUnit(unit: .pounds)),
+            digit(5, sub: "tn", secondary: .weightUnit(unit: .tons)),
+            digit(6, sub: "t", secondary: .weightUnit(unit: .tonnes))
         ],
         [
-            digit(1), digit(2), digit(3),
+            digit(1, sub: "kg", secondary: .weightUnit(unit: .kilograms)),
+            digit(2, sub: "Acre", secondary: .convertArea(format: .acres(precision: 2))),
+            digit(3),
             KeypadButton("0", .digit(value: 0), .num, columns: 2),
             KeypadButton(".", .decimal, .num)
         ],
@@ -140,7 +156,7 @@ enum KeypadModel {
         KeypadButton(label, .function(function: key), .function, help: help)
     }
 
-    private static func digit(_ value: UInt8) -> KeypadButton {
-        KeypadButton(String(value), .digit(value: value), .num)
+    private static func digit(_ value: UInt8, sub: String? = nil, secondary: KeyEvent? = nil) -> KeypadButton {
+        KeypadButton(String(value), .digit(value: value), .num, sub: sub, secondary: secondary)
     }
 }

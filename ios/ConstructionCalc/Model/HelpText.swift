@@ -96,6 +96,16 @@ enum HelpText {
             body: "Estimate a pour from length × width × depth, each in its own unit. The Concrete tool (cube icon in the header) returns the volume in m³, yd³ and ft³, plus a 60/80 lb bag count. Concrete is sold by the cubic yard — round up.",
             formula: "volume = length × width × depth",
             example: "10 ft × 12 ft × 4 in ≈ 1.13 m³ (1.48 yd³)"
+        ),
+        // -------- Cost & 2nd shift --------
+        "cost": HelpEntry(
+            title: "Cost per unit",
+            body: "Tag the typed number as a price per unit (per foot, square foot, cubic yard…). Multiply it by a measured length, area or volume to price a job.",
+            example: "12 [Cost] × 40 [Feet] = $480"
+        ),
+        "shift": HelpEntry(
+            title: "2nd shift",
+            body: "Arms the alternate functions printed in the small label above a key. While armed (key glows yellow), those keys send their secondary action — the weight units lb/kg/tn/t and Acre on the number pad — instead of a digit. It disarms after one use; tap 2nd again to cancel."
         )
     ]
 }
