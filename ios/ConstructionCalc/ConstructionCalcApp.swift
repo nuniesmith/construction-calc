@@ -6,12 +6,18 @@ import SwiftUI
 @main
 struct ConstructionCalcApp: App {
     @State private var vm = CalculatorViewModel()
+    @AppStorage(Preferences.Key.theme) private var themeRaw = ThemePref.midnight.rawValue
+
+    private var theme: CalcTheme {
+        (ThemePref(rawValue: themeRaw) ?? .midnight).theme
+    }
 
     var body: some Scene {
         WindowGroup {
             CalculatorView()
                 .environment(vm)
-                .preferredColorScheme(.dark)
+                .environment(\.calcTheme, theme)
+                .preferredColorScheme(theme.colorScheme)
         }
     }
 }

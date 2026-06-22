@@ -4,6 +4,7 @@ import SwiftUI
 /// `Display.svelte`: right-aligned, monospaced, with a transient error
 /// banner when the last key failed.
 struct DisplayView: View {
+    @Environment(\.calcTheme) private var theme
     let display: String
     let error: String?
 
@@ -19,6 +20,7 @@ struct DisplayView: View {
             }
             Text(display)
                 .font(.system(size: 48, weight: .light, design: .monospaced))
+                .foregroundStyle(theme.displayText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -29,7 +31,7 @@ struct DisplayView: View {
         .frame(maxWidth: .infinity, minHeight: 120)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.05, green: 0.09, blue: 0.16))
+                .fill(theme.display)
         )
         .animation(.easeInOut(duration: 0.15), value: display)
         .animation(.easeInOut(duration: 0.15), value: error)

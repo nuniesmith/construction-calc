@@ -4,6 +4,7 @@ import SwiftUI
 /// `FormatStrip.svelte`. The fraction chips double as rounding controls.
 struct FormatStripView: View {
     @Environment(CalculatorViewModel.self) private var vm
+    @Environment(\.calcTheme) private var theme
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -19,10 +20,10 @@ struct FormatStripView: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 7)
                                     .fill(vm.activeFormatIndex == index
-                                          ? Color(red: 0.85, green: 0.47, blue: 0.02)
-                                          : Color.white.opacity(0.04))
+                                          ? theme.accent
+                                          : theme.chipInactive)
                             )
-                            .foregroundStyle(vm.activeFormatIndex == index ? .white : Color(white: 0.8))
+                            .foregroundStyle(vm.activeFormatIndex == index ? theme.keyText : theme.chipText)
                     }
                     .buttonStyle(.plain)
                 }
@@ -31,7 +32,7 @@ struct FormatStripView: View {
             .padding(.vertical, 4)
         }
         .background(
-            RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.03))
+            RoundedRectangle(cornerRadius: 8).fill(theme.panel)
         )
     }
 }

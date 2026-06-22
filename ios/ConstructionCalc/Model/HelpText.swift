@@ -105,7 +105,13 @@ enum HelpText {
         ),
         "shift": HelpEntry(
             title: "2nd shift",
-            body: "Arms the alternate functions printed in the small label above a key. While armed (key glows yellow), those keys send their secondary action — the weight units lb/kg/tn/t and Acre on the number pad — instead of a digit. It disarms after one use; tap 2nd again to cancel."
+            body: "Arms the alternate functions printed in the small label above a key. While armed (keys glow yellow), each key sends its secondary action instead of its primary one, then disarms after one use — tap 2nd again to cancel.\n\nSecondaries: weight units lb / kg / tn / t and Acre on the number pad; cubic readouts yd³ / ft³ / in³ / m³ on the unit keys; and ft² on x². The cubic and square readouts re-express the current result in that unit.",
+            example: "10 [Feet] × 12 [Feet] × 4 [Inch] = , then 2nd yd³ → cubic yards"
+        ),
+        // -------- Calc page --------
+        "calc": HelpEntry(
+            title: "Calc shortcuts",
+            body: "The Calc page turns each key into a one-tap launcher for a guided estimator — Concrete, Stairs, Circle/Column, Framing, Rebar and Roofing. Each opens a short form: fill in a few dimensions and it returns the quantities (volume, riser/tread layout, stud and sheet counts, bundles, and so on). The same tools live behind the grid icon in the header."
         )
     ]
 }

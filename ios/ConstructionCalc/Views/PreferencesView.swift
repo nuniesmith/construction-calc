@@ -11,6 +11,7 @@ struct PreferencesView: View {
     @AppStorage(Preferences.Key.denom) private var denom = FractionDenomPref.sixteenth.rawValue
     @AppStorage(Preferences.Key.format) private var format = LengthFormatPref.feetInchFraction.rawValue
     @AppStorage(Preferences.Key.degrees) private var angleInDegrees = true
+    @AppStorage(Preferences.Key.theme) private var theme = ThemePref.midnight.rawValue
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,18 @@ struct PreferencesView: View {
                             Text(f.label).tag(f.rawValue)
                         }
                     }
+                }
+
+                Section {
+                    Picker("Theme", selection: $theme) {
+                        ForEach(ThemePref.allCases) { t in
+                            Text(t.label).tag(t.rawValue)
+                        }
+                    }
+                } header: {
+                    Text("Appearance")
+                } footer: {
+                    Text("Daylight is a lighter, physical-calculator look; Midnight is the original dark theme.")
                 }
 
                 Section {
@@ -59,6 +72,7 @@ struct PreferencesView: View {
         denom = Preferences.defaults.fractionDenom.rawValue
         format = Preferences.defaults.lengthFormat.rawValue
         angleInDegrees = Preferences.defaults.angleInDegrees
+        theme = ThemePref.midnight.rawValue
         vm.reapplyDisplayPreference()
         vm.setAngleMode(degrees: angleInDegrees)
     }

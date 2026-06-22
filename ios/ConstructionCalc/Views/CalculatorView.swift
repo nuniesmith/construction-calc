@@ -5,6 +5,7 @@ import SwiftUI
 /// plus its header links.
 struct CalculatorView: View {
     @Environment(CalculatorViewModel.self) private var vm
+    @Environment(\.calcTheme) private var theme
 
     @State private var showTape = false
     @State private var showPreferences = false
@@ -12,24 +13,29 @@ struct CalculatorView: View {
     @State private var showHelp = false
     /// Non-nil while a long-press help entry is being shown.
     @State private var helpId: String?
+    /// Set when a keypad "Calc" key launches a guided estimator.
+    @State private var estimatorRoute: EstimatorRoute?
 
     var body: some View {
         VStack(spacing: 8) {
             header
             DisplayView(display: vm.display, error: vm.errorMessage)
             FormatStripView()
-            KeypadView(helpId: $helpId)
+            KeypadView(helpId: $helpId, estimatorRoute: $estimatorRoute)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
-        .background(Color(red: 0.04, green: 0.05, blue: 0.10).ignoresSafeArea())
+        .background(theme.appBackground.ignoresSafeArea())
         .sheet(isPresented: $showTape) { TapeView() }
         .sheet(isPresented: $showPreferences) { PreferencesView() }
         .sheet(isPresented: $showCalcs) { CalcsMenuView() }
         .sheet(isPresented: $showHelp) { HelpReferenceView() }
+        .sheet(item: $estimatorRoute) { route in
+            EstimatorSheet(route: route)
+        }
         .sheet(item: helpBinding) { item in
             HelpOverlayView(entry: item.entry)
         }
@@ -55,7 +61,7 @@ struct CalculatorView: View {
                 Image(systemName: "gearshape")
             }
         }
-        .tint(Color(red: 0.99, green: 0.83, blue: 0.30))
+        .tint(theme.accent)
     }
 
     /// Bridges the `String?` help id to the `sheet(item:)` API, which needs an

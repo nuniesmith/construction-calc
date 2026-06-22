@@ -29,10 +29,14 @@ struct KeypadButton: Identifiable {
     let secondary: KeyEvent?
     /// True only for the "2nd" key itself, which toggles secondary mode.
     let shift: Bool
+    /// A guided estimator this key opens instead of sending an event — used by
+    /// the "Calc" page. Nil for ordinary keys.
+    let estimator: EstimatorRoute?
 
     init(_ label: String, _ event: KeyEvent?, _ style: KeyStyle,
          columns: Int = 1, help: String? = nil,
-         sub: String? = nil, secondary: KeyEvent? = nil, shift: Bool = false) {
+         sub: String? = nil, secondary: KeyEvent? = nil, shift: Bool = false,
+         estimator: EstimatorRoute? = nil) {
         self.label = label
         self.event = event
         self.style = style
@@ -41,6 +45,7 @@ struct KeypadButton: Identifiable {
         self.sub = sub
         self.secondary = secondary
         self.shift = shift
+        self.estimator = estimator
     }
 
     /// A blank, non-interactive cell.
@@ -49,13 +54,14 @@ struct KeypadButton: Identifiable {
     }
 }
 
-/// The switchable function pages — Rafter / Trig / Miter / Mem — mirroring
-/// the page tabs in `Keypad.svelte`.
+/// The switchable function pages — Rafter / Trig / Miter / Mem — plus a "Calc"
+/// page of one-tap estimator launchers. Mirrors the page tabs in `Keypad.svelte`.
 enum KeypadPage: String, CaseIterable, Identifiable {
     case rafter = "Rafter"
     case trig = "Trig"
     case miter = "Miter"
     case memory = "Mem"
+    case calc = "Calc"
 
     var id: String { rawValue }
 }
@@ -101,6 +107,9 @@ enum KeypadModel {
                 KeypadButton("MC All", .memory(op: .clearAll), .function, help: "memclearall"),
                 .filler()
             ]
+        case .calc:
+            // Each key jumps straight to a guided estimator sheet.
+            return EstimatorRoute.allCases.map { est($0) }
         }
     }
 
@@ -108,10 +117,14 @@ enum KeypadModel {
     /// like the web `sharedRows`.
     static let sharedRows: [[KeypadButton]] = [
         [
-            KeypadButton("Yds", .unit(unit: .yards), .unit, help: "yd"),
-            KeypadButton("Feet", .unit(unit: .feet), .unit, help: "ft"),
-            KeypadButton("Inch", .unit(unit: .inch), .unit, help: "in"),
-            KeypadButton("m", .unit(unit: .meters), .unit, help: "m"),
+            KeypadButton("Yds", .unit(unit: .yards), .unit, help: "yd",
+                         sub: "yd³", secondary: .convertVolume(format: .cubicYards(precision: 2))),
+            KeypadButton("Feet", .unit(unit: .feet), .unit, help: "ft",
+                         sub: "ft³", secondary: .convertVolume(format: .cubicFeet(precision: 2))),
+            KeypadButton("Inch", .unit(unit: .inch), .unit, help: "in",
+                         sub: "in³", secondary: .convertVolume(format: .cubicInches(precision: 1))),
+            KeypadButton("m", .unit(unit: .meters), .unit, help: "m",
+                         sub: "m³", secondary: .convertVolume(format: .cubicMeters(precision: 3))),
             KeypadButton("Cost", .costPerUnit, .unit, help: "cost"),
             KeypadButton("2nd", nil, .op, help: "shift", shift: true)
         ],
@@ -125,7 +138,8 @@ enum KeypadModel {
         ],
         [
             KeypadButton("√", .function(function: .sqrt), .function, help: "sqrt"),
-            KeypadButton("x²", .function(function: .square), .function, help: "square"),
+            KeypadButton("x²", .function(function: .square), .function, help: "square",
+                         sub: "ft²", secondary: .convertArea(format: .squareFeet(precision: 2))),
             KeypadButton("1/x", .function(function: .reciprocal), .function, help: "recip"),
             KeypadButton("%", .function(function: .percent), .function, help: "percent"),
             KeypadButton("×", .op(op: .mul), .op),
@@ -158,5 +172,10 @@ enum KeypadModel {
 
     private static func digit(_ value: UInt8, sub: String? = nil, secondary: KeyEvent? = nil) -> KeypadButton {
         KeypadButton(String(value), .digit(value: value), .num, sub: sub, secondary: secondary)
+    }
+
+    /// A "Calc" page key that opens a guided estimator sheet.
+    private static func est(_ route: EstimatorRoute) -> KeypadButton {
+        KeypadButton(route.keyLabel, nil, .function, help: "calc", estimator: route)
     }
 }

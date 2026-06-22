@@ -1,7 +1,80 @@
 import SwiftUI
 
 // Guided construction estimators, each a self-contained Swift form (math in a
-// computed property, views in the body). Reached from the Calcs menu.
+// computed property, views in the body). Reached two ways: the grid icon in the
+// header (the full menu) and the "Calc" page on the keypad (one-tap launch).
+
+/// The set of guided estimators. One source of truth for the menu list, the
+/// keypad "Calc" page, and the sheet that presents each tool — so a new
+/// estimator is added in exactly one place.
+enum EstimatorRoute: String, CaseIterable, Identifiable {
+    case concrete, stairs, circle, framing, rebar, roofing
+
+    var id: String { rawValue }
+
+    /// Full name for the menu list.
+    var menuLabel: String {
+        switch self {
+        case .concrete: return "Concrete"
+        case .stairs:   return "Stairs"
+        case .circle:   return "Circle / Column"
+        case .framing:  return "Framing"
+        case .rebar:    return "Rebar"
+        case .roofing:  return "Roofing"
+        }
+    }
+
+    /// Short label that fits a keypad key.
+    var keyLabel: String {
+        switch self {
+        case .concrete: return "Concr"
+        case .stairs:   return "Stair"
+        case .circle:   return "Circle"
+        case .framing:  return "Frame"
+        case .rebar:    return "Rebar"
+        case .roofing:  return "Roof"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .concrete: return "cube"
+        case .stairs:   return "figure.stairs"
+        case .circle:   return "circle"
+        case .framing:  return "rectangle.split.3x1"
+        case .rebar:    return "square.grid.3x3"
+        case .roofing:  return "house"
+        }
+    }
+
+    @ViewBuilder var destination: some View {
+        switch self {
+        case .concrete: ConcreteCalcView()
+        case .stairs:   StairCalcView()
+        case .circle:   CircleCalcView()
+        case .framing:  FramingCalcView()
+        case .rebar:    RebarCalcView()
+        case .roofing:  RoofingCalcView()
+        }
+    }
+}
+
+/// Presents one estimator as a self-contained sheet (its own navigation stack +
+/// a Done button). Used by the keypad "Calc" page, which jumps straight to a
+/// single tool rather than the full menu.
+struct EstimatorSheet: View {
+    let route: EstimatorRoute
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            route.destination
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                }
+        }
+    }
+}
 
 /// Launcher listing every estimator.
 struct CalcsMenuView: View {
@@ -10,15 +83,16 @@ struct CalcsMenuView: View {
         NavigationStack {
             List {
                 Section("Estimators") {
-                    NavigationLink { ConcreteCalcView() } label: { Label("Concrete", systemImage: "cube") }
-                    NavigationLink { StairCalcView() } label: { Label("Stairs", systemImage: "figure.stairs") }
-                    NavigationLink { CircleCalcView() } label: { Label("Circle / Column", systemImage: "circle") }
-                    NavigationLink { FramingCalcView() } label: { Label("Framing", systemImage: "rectangle.split.3x1") }
-                    NavigationLink { RebarCalcView() } label: { Label("Rebar", systemImage: "square.grid.3x3") }
-                    NavigationLink { RoofingCalcView() } label: { Label("Roofing", systemImage: "house") }
+                    ForEach(EstimatorRoute.allCases) { route in
+                        NavigationLink {
+                            route.destination
+                        } label: {
+                            Label(route.menuLabel, systemImage: route.systemImage)
+                        }
+                    }
                 }
                 Section {
-                    Text("Each tool fills in a few dimensions and gives you quantities — concrete volume, stair layout, sheet/bundle counts, and so on.")
+                    Text("Each tool fills in a few dimensions and gives you quantities — concrete volume, stair layout, sheet/bundle counts, and so on. You can also reach any of these from the \"Calc\" page on the keypad.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }

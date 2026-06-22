@@ -1,10 +1,14 @@
 import SwiftUI
 
 /// The button grid. Faithful port of `Keypad.svelte`: a page picker
-/// (Rafter / Trig / Miter / Mem) over a 6-column grid of shared rows.
+/// (Rafter / Trig / Miter / Mem / Calc) over a 6-column grid of shared rows.
 /// Long-pressing a key surfaces its help entry via the `helpId` binding.
 struct KeypadView: View {
     @Binding var helpId: String?
+    /// Set when a "Calc" page key is tapped, so the root view can present that
+    /// estimator as a sheet.
+    @Binding var estimatorRoute: EstimatorRoute?
+    @Environment(\.calcTheme) private var theme
 
     @State private var page: KeypadPage = .rafter
     /// When armed by the "2nd" key, a key with a red secondary label sends that
@@ -30,7 +34,8 @@ struct KeypadView: View {
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     GridRow {
                         ForEach(row) { button in
-                            KeyButton(button: button, helpId: $helpId, secondMode: $secondMode)
+                            KeyButton(button: button, helpId: $helpId,
+                                      secondMode: $secondMode, estimatorRoute: $estimatorRoute)
                                 .gridCellColumns(button.columns)
                         }
                     }
@@ -39,7 +44,7 @@ struct KeypadView: View {
         }
         .padding(6)
         .background(
-            RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.03))
+            RoundedRectangle(cornerRadius: 12).fill(theme.panel)
         )
     }
 }
@@ -51,9 +56,11 @@ struct KeypadView: View {
 /// armed fires its secondary event instead of the primary one.
 private struct KeyButton: View {
     @Environment(CalculatorViewModel.self) private var vm
+    @Environment(\.calcTheme) private var theme
     let button: KeypadButton
     @Binding var helpId: String?
     @Binding var secondMode: Bool
+    @Binding var estimatorRoute: EstimatorRoute?
 
     var body: some View {
         if button.style == .filler {
@@ -70,7 +77,7 @@ private struct KeyButton: View {
                     }
                     Text(button.label)
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(theme.keyText)
                 }
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(
@@ -85,42 +92,35 @@ private struct KeyButton: View {
     }
 
     /// Routes the tap: the "2nd" key toggles shift; an armed shift fires a key's
-    /// secondary event (then disarms); otherwise the primary event fires.
+    /// secondary event (then disarms); a "Calc" key opens its estimator;
+    /// otherwise the primary event fires.
     private func tap() {
         if button.shift {
             secondMode.toggle()
         } else if secondMode, let secondary = button.secondary {
             vm.send(secondary)
             secondMode = false
+        } else if let route = button.estimator {
+            estimatorRoute = route
+            if secondMode { secondMode = false }
         } else if let event = button.event {
             vm.send(event)
             if secondMode { secondMode = false }
         }
     }
 
-    /// Secondary caption tint: brighter yellow while armed so the live alternate
-    /// functions stand out; a muted red otherwise.
+    /// Secondary caption tint: the accent (yellow / amber) while armed so the
+    /// live alternate functions stand out; a muted red otherwise.
     private var subColor: Color {
-        secondMode
-            ? Color(red: 0.99, green: 0.83, blue: 0.30)
-            : Color(red: 0.95, green: 0.45, blue: 0.40)
+        secondMode ? theme.accent : theme.subNormal
     }
 
-    /// Key fill. The "2nd" key glows yellow while armed; everything else uses
-    /// its category tint.
+    /// Key fill. The "2nd" key glows in the accent colour while armed;
+    /// everything else uses its category tint from the theme.
     private var fill: Color {
         if button.shift {
-            return secondMode
-                ? Color(red: 0.99, green: 0.83, blue: 0.30)
-                : Color(red: 0.85, green: 0.47, blue: 0.02)
+            return secondMode ? theme.accent : theme.opKey
         }
-        switch button.style {
-        case .function: return Color(red: 0.23, green: 0.23, blue: 0.54)
-        case .unit:     return Color(red: 0.28, green: 0.35, blue: 0.46)
-        case .op:       return Color(red: 0.85, green: 0.47, blue: 0.02)
-        case .control:  return Color(red: 0.48, green: 0.12, blue: 0.12)
-        case .num:      return Color(red: 0.16, green: 0.20, blue: 0.25)
-        case .filler:   return .clear
-        }
+        return theme.keyFill(button.style)
     }
 }
