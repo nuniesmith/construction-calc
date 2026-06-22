@@ -13,7 +13,7 @@ struct KeypadView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 7) {
             Picker("Function page", selection: $page) {
                 ForEach(KeypadPage.allCases) { p in
                     Text(p.rawValue).tag(p)
@@ -21,7 +21,9 @@ struct KeypadView: View {
             }
             .pickerStyle(.segmented)
 
-            Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+            // Tight grid + padding so the pad reads like a physical construction
+            // calculator (keys nearly touching) rather than a spaced-out app grid.
+            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     GridRow {
                         ForEach(row) { button in
@@ -32,7 +34,7 @@ struct KeypadView: View {
                 }
             }
         }
-        .padding(10)
+        .padding(6)
         .background(
             RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.03))
         )
@@ -49,16 +51,16 @@ private struct KeyButton: View {
 
     var body: some View {
         if button.event == nil && button.style == .filler {
-            Color.clear.frame(maxWidth: .infinity, minHeight: 52)
+            Color.clear.frame(maxWidth: .infinity, minHeight: 48)
         } else {
             Button {
                 if let event = button.event { vm.send(event) }
             } label: {
                 Text(button.label)
-                    .font(.system(size: 19, weight: .medium))
-                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(maxWidth: .infinity, minHeight: 48)
                     .background(
-                        RoundedRectangle(cornerRadius: 10).fill(background)
+                        RoundedRectangle(cornerRadius: 8).fill(background)
                     )
                     .foregroundStyle(.white)
             }

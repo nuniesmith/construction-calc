@@ -89,6 +89,13 @@ enum HelpText {
         "memrecall": HelpEntry(title: "Memory recall (MR)", body: "Load the value from memory slot 1 onto the display."),
         "memplus": HelpEntry(title: "Memory add (M+)", body: "Add the current display value into memory slot 1 (in-place)."),
         "memclear": HelpEntry(title: "Memory clear (MC)", body: "Zero out memory slot 1."),
-        "memclearall": HelpEntry(title: "Clear all memory", body: "Zero out every memory slot the engine tracks.")
+        "memclearall": HelpEntry(title: "Clear all memory", body: "Zero out every memory slot the engine tracks."),
+        // -------- Concrete --------
+        "concrete": HelpEntry(
+            title: "Concrete volume",
+            body: "Estimate a pour from length × width × depth, each in its own unit. The Concrete tool (cube icon in the header) returns the volume in m³, yd³ and ft³, plus a 60/80 lb bag count. Concrete is sold by the cubic yard — round up.",
+            formula: "volume = length × width × depth",
+            example: "10 ft × 12 ft × 4 in ≈ 1.13 m³ (1.48 yd³)"
+        )
     ]
 }

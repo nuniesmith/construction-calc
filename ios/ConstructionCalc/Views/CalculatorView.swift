@@ -8,11 +8,13 @@ struct CalculatorView: View {
 
     @State private var showTape = false
     @State private var showPreferences = false
+    @State private var showConcrete = false
+    @State private var showHelp = false
     /// Non-nil while a long-press help entry is being shown.
     @State private var helpId: String?
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             header
             DisplayView(display: vm.display, error: vm.errorMessage)
             FormatStripView()
@@ -26,16 +28,26 @@ struct CalculatorView: View {
         .background(Color(red: 0.04, green: 0.05, blue: 0.10).ignoresSafeArea())
         .sheet(isPresented: $showTape) { TapeView() }
         .sheet(isPresented: $showPreferences) { PreferencesView() }
+        .sheet(isPresented: $showConcrete) { ConcreteCalcView() }
+        .sheet(isPresented: $showHelp) { HelpReferenceView() }
         .sheet(item: helpBinding) { item in
             HelpOverlayView(entry: item.entry)
         }
     }
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 16) {
             Text("Construction Calc")
                 .font(.headline)
             Spacer()
+            Button { showConcrete = true } label: {
+                Image(systemName: "cube")
+            }
+            .accessibilityLabel("Concrete calculator")
+            Button { showHelp = true } label: {
+                Image(systemName: "questionmark.circle")
+            }
+            .accessibilityLabel("Function guide")
             Button { showTape = true } label: {
                 Image(systemName: "list.bullet.rectangle")
             }
