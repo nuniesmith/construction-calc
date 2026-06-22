@@ -64,7 +64,10 @@ private struct KeyButton: View {
 
     var body: some View {
         if button.style == .filler {
-            Color.clear.frame(maxWidth: .infinity, minHeight: 48)
+            // Fixed height (not just a minimum): a bare Color is greedy and would
+            // otherwise balloon its grid row to absorb all slack, leaving a gap
+            // on pages whose function row has empty cells (Miter, Mem).
+            Color.clear.frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
         } else {
             Button(action: tap) {
                 VStack(spacing: 1) {
