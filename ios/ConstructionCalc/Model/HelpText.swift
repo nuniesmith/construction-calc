@@ -105,7 +105,7 @@ enum HelpText {
         ),
         "shift": HelpEntry(
             title: "2nd shift",
-            body: "Arms the alternate functions printed in the small label above a key. While armed (keys glow yellow), each key sends its secondary action instead of its primary one, then disarms after one use — tap 2nd again to cancel.\n\nSecondaries: weight units lb / kg / tn / t and Acre on the number pad; cubic readouts yd³ / ft³ / in³ / m³ on the unit keys; and ft² on x². The cubic and square readouts re-express the current result in that unit.",
+            body: "Arms the alternate functions printed in the small label above a key. While armed (keys glow yellow), each key sends its secondary action instead of its primary one, then disarms after one use — tap 2nd again to cancel.\n\nOn the number pad: weight units lb (4) / kg (1) / tn (6) / mt (3), Acre (2), ± sign (0), and the dms⇄deg angle toggle (.). On the unit keys: cubic readouts yd³ / ft³ / in³ / m³. Elsewhere: 1/x on √, ft² on x², and % on the ⁄ key. The cubic, square and Acre readouts re-express the current result in that unit.",
             example: "10 [Feet] × 12 [Feet] × 4 [Inch] = , then 2nd yd³ → cubic yards"
         ),
         // -------- Calc page --------

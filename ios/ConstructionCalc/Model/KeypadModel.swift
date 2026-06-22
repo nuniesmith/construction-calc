@@ -113,9 +113,10 @@ enum KeypadModel {
         }
     }
 
-    /// Rows shared across every page. Laid out as a 6-column grid exactly
-    /// like the web `sharedRows`.
-    static let sharedRows: [[KeypadButton]] = [
+    /// The upper rows shared by every page — a compact 6-column grid holding the
+    /// unit tags and the control / math keys. The number pad is rendered
+    /// separately (see `calcBlock`).
+    static let topSharedRows: [[KeypadButton]] = [
         [
             KeypadButton("Yds", .unit(unit: .yards), .unit, help: "yd",
                          sub: "yd³", secondary: .convertVolume(format: .cubicYards(precision: 2))),
@@ -132,35 +133,43 @@ enum KeypadModel {
             KeypadButton("C", .clear, .control, help: "c"),
             KeypadButton("AC", .clearAll, .control, help: "ac"),
             KeypadButton("⌫", .backspace, .control, help: "bs"),
-            KeypadButton("/", .slash, .op, help: "slash"),
-            KeypadButton("±", .negate, .op, help: "negate"),
+            KeypadButton("√", .function(function: .sqrt), .function, help: "sqrt",
+                         sub: "1/x", secondary: .function(function: .reciprocal)),
+            KeypadButton("x²", .function(function: .square), .function, help: "square",
+                         sub: "ft²", secondary: .convertArea(format: .squareFeet(precision: 2))),
+            KeypadButton("/", .slash, .op, help: "slash",
+                         sub: "%", secondary: .function(function: .percent))
+        ]
+    ]
+
+    /// The number pad — a true 4-column calculator block (three digits + an
+    /// operator per row), rendered apart from the 6-column grid so the digit
+    /// keys read big like a physical calculator. Secondary (2nd-shift) labels
+    /// mirror the ProjectCalc reference wherever the engine supports them:
+    /// weight units, Acre, the dms⇄deg angle toggle, and sign.
+    static let calcBlock: [[KeypadButton]] = [
+        [
+            digit(7), digit(8), digit(9),
             KeypadButton("÷", .op(op: .div), .op)
         ],
         [
-            KeypadButton("√", .function(function: .sqrt), .function, help: "sqrt"),
-            KeypadButton("x²", .function(function: .square), .function, help: "square",
-                         sub: "ft²", secondary: .convertArea(format: .squareFeet(precision: 2))),
-            KeypadButton("1/x", .function(function: .reciprocal), .function, help: "recip"),
-            KeypadButton("%", .function(function: .percent), .function, help: "percent"),
-            KeypadButton("×", .op(op: .mul), .op),
-            KeypadButton("−", .op(op: .sub), .op)
-        ],
-        [
-            digit(7), digit(8), digit(9),
             digit(4, sub: "lb", secondary: .weightUnit(unit: .pounds)),
-            digit(5, sub: "tn", secondary: .weightUnit(unit: .tons)),
-            digit(6, sub: "t", secondary: .weightUnit(unit: .tonnes))
+            digit(5),
+            digit(6, sub: "tn", secondary: .weightUnit(unit: .tons)),
+            KeypadButton("×", .op(op: .mul), .op)
         ],
         [
             digit(1, sub: "kg", secondary: .weightUnit(unit: .kilograms)),
             digit(2, sub: "Acre", secondary: .convertArea(format: .acres(precision: 2))),
-            digit(3),
-            KeypadButton("0", .digit(value: 0), .num, columns: 2),
-            KeypadButton(".", .decimal, .num)
+            digit(3, sub: "mt", secondary: .weightUnit(unit: .tonnes)),
+            KeypadButton("−", .op(op: .sub), .op)
         ],
         [
-            KeypadButton("+", .op(op: .add), .op),
-            KeypadButton("=", .equals, .op, columns: 5)
+            digit(0, sub: "±", secondary: .negate),
+            KeypadButton(".", .decimal, .num,
+                         sub: "dms", secondary: .convertAngle(format: .degMinSec)),
+            KeypadButton("=", .equals, .op),
+            KeypadButton("+", .op(op: .add), .op)
         ]
     ]
 

@@ -15,8 +15,10 @@ struct KeypadView: View {
     /// secondary event instead of its primary one.
     @State private var secondMode = false
 
-    private var rows: [[KeypadButton]] {
-        [KeypadModel.functionRow(for: page)] + KeypadModel.sharedRows
+    /// The function-page row plus the shared unit / control rows — the compact
+    /// 6-column zone above the number pad.
+    private var topRows: [[KeypadButton]] {
+        [KeypadModel.functionRow(for: page)] + KeypadModel.topSharedRows
     }
 
     var body: some View {
@@ -31,12 +33,26 @@ struct KeypadView: View {
             // Tight grid + padding so the pad reads like a physical construction
             // calculator (keys nearly touching) rather than a spaced-out app grid.
             Grid(horizontalSpacing: 4, verticalSpacing: 4) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                ForEach(Array(topRows.enumerated()), id: \.offset) { _, row in
                     GridRow {
                         ForEach(row) { button in
                             KeyButton(button: button, helpId: $helpId,
                                       secondMode: $secondMode, estimatorRoute: $estimatorRoute)
                                 .gridCellColumns(button.columns)
+                        }
+                    }
+                }
+            }
+
+            // Number pad as a real 4-column calculator block (three big digit
+            // keys + an operator per row), rendered outside the grid so the
+            // digits stay large and evenly sized like a physical calculator.
+            VStack(spacing: 4) {
+                ForEach(Array(KeypadModel.calcBlock.enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: 4) {
+                        ForEach(row) { button in
+                            KeyButton(button: button, helpId: $helpId,
+                                      secondMode: $secondMode, estimatorRoute: $estimatorRoute)
                         }
                     }
                 }
