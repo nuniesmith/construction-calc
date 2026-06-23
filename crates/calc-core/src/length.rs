@@ -34,6 +34,16 @@ pub mod consts {
     pub fn in_per_m() -> Rational64 {
         Rational64::new(5000, 127)
     }
+
+    /// Inches per centimeter: 1 cm = 50/127 in (exact).
+    pub fn in_per_cm() -> Rational64 {
+        Rational64::new(50, 127)
+    }
+
+    /// Inches per millimeter: 1 mm = 5/127 in (exact).
+    pub fn in_per_mm() -> Rational64 {
+        Rational64::new(5, 127)
+    }
 }
 
 /// An exact length in inches.
@@ -92,6 +102,14 @@ impl Length {
 
     pub fn meters(&self) -> Rational64 {
         self.inches / consts::in_per_m()
+    }
+
+    pub fn centimeters(&self) -> Rational64 {
+        self.inches / consts::in_per_cm()
+    }
+
+    pub fn millimeters(&self) -> Rational64 {
+        self.inches / consts::in_per_mm()
     }
 
     pub fn is_zero(&self) -> bool {

@@ -87,6 +87,8 @@ pub enum FunctionKey {
     Square,
     Reciprocal,
     Percent,
+    // Material counts
+    Studs,
     // Compound miter
     Corner,
     Spring,
@@ -112,6 +114,8 @@ pub enum LengthFormat {
     DecimalInches { precision: u8 },
     Yards { precision: u8 },
     Meters { precision: u8 },
+    Centimeters { precision: u8 },
+    Millimeters { precision: u8 },
 }
 
 /// Display format for area results.
@@ -133,6 +137,7 @@ pub enum VolumeFormat {
     CubicMeters { precision: u8 },
     Gallons { precision: u8 },
     Liters { precision: u8 },
+    BoardFeet { precision: u8 },
 }
 
 /// Display format for angle results: sexagesimal D°M'S" or decimal degrees.
@@ -359,6 +364,7 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             FunctionKey::Square => CoreFn::Square,
             FunctionKey::Reciprocal => CoreFn::Reciprocal,
             FunctionKey::Percent => CoreFn::Percent,
+            FunctionKey::Studs => CoreFn::Studs,
             FunctionKey::Corner => CoreFn::Corner,
             FunctionKey::Spring => CoreFn::Spring,
             FunctionKey::Miter => CoreFn::Miter,
@@ -374,6 +380,12 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             }
             LengthFormat::Yards { precision } => CoreLengthFormat::Yards { precision },
             LengthFormat::Meters { precision } => CoreLengthFormat::Meters { precision },
+            LengthFormat::Centimeters { precision } => {
+                CoreLengthFormat::Centimeters { precision }
+            }
+            LengthFormat::Millimeters { precision } => {
+                CoreLengthFormat::Millimeters { precision }
+            }
         }),
         KeyEvent::ConvertArea { format } => CoreKeyEvent::ConvertArea(match format {
             AreaFormat::SquareInches { precision } => CoreAreaFormat::SquareInches { precision },
@@ -389,6 +401,7 @@ fn into_core_event(ev: KeyEvent) -> CoreKeyEvent {
             VolumeFormat::CubicMeters { precision } => CoreVolumeFormat::CubicMeters { precision },
             VolumeFormat::Gallons { precision } => CoreVolumeFormat::Gallons { precision },
             VolumeFormat::Liters { precision } => CoreVolumeFormat::Liters { precision },
+            VolumeFormat::BoardFeet { precision } => CoreVolumeFormat::BoardFeet { precision },
         }),
         KeyEvent::ConvertAngle { format } => CoreKeyEvent::ConvertAngle(match format {
             AngleFormat::DegMinSec => CoreAngleFormat::DegMinSec,

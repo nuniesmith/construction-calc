@@ -35,6 +35,12 @@ pub enum LengthFormat {
     Meters {
         precision: u8,
     },
+    Centimeters {
+        precision: u8,
+    },
+    Millimeters {
+        precision: u8,
+    },
 }
 
 /// Caller can ask for arbitrary precision in the conversion API; this is the
@@ -61,7 +67,9 @@ impl LengthFormat {
             LengthFormat::DecimalFeet { precision }
             | LengthFormat::DecimalInches { precision }
             | LengthFormat::Yards { precision }
-            | LengthFormat::Meters { precision } => {
+            | LengthFormat::Meters { precision }
+            | LengthFormat::Centimeters { precision }
+            | LengthFormat::Millimeters { precision } => {
                 check_precision(precision)?;
                 Ok(self)
             }
@@ -128,6 +136,10 @@ pub enum VolumeFormat {
     Liters {
         precision: u8,
     },
+    /// Lumber board feet (144 in³ each, i.e. 1 ft × 1 ft × 1 in).
+    BoardFeet {
+        precision: u8,
+    },
 }
 
 impl VolumeFormat {
@@ -138,7 +150,8 @@ impl VolumeFormat {
             | VolumeFormat::CubicYards { precision }
             | VolumeFormat::CubicMeters { precision }
             | VolumeFormat::Gallons { precision }
-            | VolumeFormat::Liters { precision } => precision,
+            | VolumeFormat::Liters { precision }
+            | VolumeFormat::BoardFeet { precision } => precision,
         }
     }
 
@@ -234,6 +247,9 @@ fn volume_parts(fmt: VolumeFormat) -> (Rational64, u8, &'static str) {
         VolumeFormat::Gallons { precision } => (Rational64::from_integer(231), precision, "gal"),
         VolumeFormat::Liters { precision } => {
             (Rational64::new(125_000_000, 2_048_383), precision, "L")
+        }
+        VolumeFormat::BoardFeet { precision } => {
+            (Rational64::from_integer(144), precision, "bd ft")
         }
     }
 }
@@ -375,6 +391,12 @@ pub fn format_length(length: &Length, fmt: LengthFormat) -> String {
         }
         LengthFormat::Meters { precision } => {
             format_rational_with_unit(length.meters(), precision, " m")
+        }
+        LengthFormat::Centimeters { precision } => {
+            format_rational_with_unit(length.centimeters(), precision, " cm")
+        }
+        LengthFormat::Millimeters { precision } => {
+            format_rational_with_unit(length.millimeters(), precision, " mm")
         }
     }
 }

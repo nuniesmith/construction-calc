@@ -81,6 +81,19 @@ fn volume_unit_conversions_are_exact() {
     );
 }
 
+#[test]
+fn board_feet_conversion_is_exact() {
+    // 1 board foot = 144 in³ (1 ft × 1 ft × 1 in); 1 cu ft = 1728 in³ = 12 bd ft.
+    assert_eq!(
+        format_volume(int(144), VolumeFormat::BoardFeet { precision: 2 }),
+        "1 bd ft"
+    );
+    assert_eq!(
+        format_volume(int(1728), VolumeFormat::BoardFeet { precision: 0 }),
+        "12 bd ft"
+    );
+}
+
 // --- through the calculator -----------------------------------------------
 
 #[test]

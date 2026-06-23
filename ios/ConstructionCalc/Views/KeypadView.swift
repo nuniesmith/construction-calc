@@ -46,17 +46,21 @@ struct KeypadView: View {
 
             // Number pad as a real 4-column calculator block (three big digit
             // keys + an operator per row), rendered outside the grid so the
-            // digits stay large and evenly sized like a physical calculator.
+            // digits stay large and evenly sized like a physical calculator. The
+            // block fills the leftover height so the digit keys grow tall.
             VStack(spacing: 4) {
                 ForEach(Array(KeypadModel.calcBlock.enumerated()), id: \.offset) { _, row in
                     HStack(spacing: 4) {
                         ForEach(row) { button in
                             KeyButton(button: button, helpId: $helpId,
-                                      secondMode: $secondMode, estimatorRoute: $estimatorRoute)
+                                      secondMode: $secondMode, estimatorRoute: $estimatorRoute,
+                                      stretch: true)
                         }
                     }
+                    .frame(maxHeight: .infinity)
                 }
             }
+            .frame(maxHeight: .infinity)
         }
         .padding(6)
         .background(
@@ -77,6 +81,9 @@ private struct KeyButton: View {
     @Binding var helpId: String?
     @Binding var secondMode: Bool
     @Binding var estimatorRoute: EstimatorRoute?
+    /// When true the key grows to fill extra vertical space (used by the number
+    /// pad so the digit keys read tall and chunky like a physical calculator).
+    var stretch: Bool = false
 
     var body: some View {
         if button.style == .filler {
@@ -98,7 +105,7 @@ private struct KeyButton: View {
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(theme.keyText)
                 }
-                .frame(maxWidth: .infinity, minHeight: 48)
+                .frame(maxWidth: .infinity, minHeight: 48, maxHeight: stretch ? .infinity : nil)
                 .background(
                     RoundedRectangle(cornerRadius: 8).fill(fill)
                 )

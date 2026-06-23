@@ -105,7 +105,7 @@ enum HelpText {
         ),
         "shift": HelpEntry(
             title: "2nd shift",
-            body: "Arms the alternate functions printed in the small label above a key. While armed (keys glow yellow), each key sends its secondary action instead of its primary one, then disarms after one use — tap 2nd again to cancel.\n\nOn the number pad: weight units lb (4) / kg (1) / tn (6) / mt (3), Acre (2), ± sign (0), and the dms⇄deg angle toggle (.). On the unit keys: cubic readouts yd³ / ft³ / in³ / m³. Elsewhere: 1/x on √, ft² on x², and % on the ⁄ key. The cubic, square and Acre readouts re-express the current result in that unit.",
+            body: "Arms the alternate functions printed in the small label above a key. While armed (keys glow yellow), each key sends its secondary action instead of its primary one, then disarms after one use — tap 2nd again to cancel.\n\nNumber-pad readouts: cm (7), mm (9), board feet bd ft (8); Studs (5) counts a wall's studs at 16\" o.c.; weight units lb (4) / tn (6) / kg (1) / mt (3); Acre (2); ± sign (0); and the dms⇄deg angle toggle (.). Unit keys give cubic readouts yd³ / ft³ / in³ / m³. Elsewhere: 1/x on √, ft² on x², and % on the ⁄ key. The cm/mm, cubic, square, board-foot and Acre readouts re-express the current result in that unit; Studs needs a length (enter a wall run, tag it with a unit, then 2nd Studs).",
             example: "10 [Feet] × 12 [Feet] × 4 [Inch] = , then 2nd yd³ → cubic yards"
         ),
         // -------- Calc page --------

@@ -22,10 +22,10 @@ struct CalculatorView: View {
             DisplayView(display: vm.display, error: vm.errorMessage)
             FormatStripView()
             KeypadView(helpId: $helpId, estimatorRoute: $estimatorRoute)
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
+        .padding(.bottom, 8)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
         .background(theme.appBackground.ignoresSafeArea())

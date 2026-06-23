@@ -64,6 +64,10 @@ pub enum FunctionKey {
     Square,
     Reciprocal,
     Percent,
+    // -- Material counts --
+    /// Number of studs for a wall run at 16" on-center (the closing stud
+    /// included): `ceil(run / 16") + 1`.
+    Studs,
     // -- Compound miter family --
     /// Set the corner angle for compound-miter solving.
     Corner,
@@ -544,6 +548,8 @@ impl Calculator {
                 LengthFormat::DecimalInches { .. } => l.inches(),
                 LengthFormat::Yards { .. } => l.yards(),
                 LengthFormat::Meters { .. } => l.meters(),
+                LengthFormat::Centimeters { .. } => l.centimeters(),
+                LengthFormat::Millimeters { .. } => l.millimeters(),
             },
             Value::Area(r) => crate::format::area_magnitude(r, self.mode.default_area_format),
             Value::Volume(r) => crate::format::volume_magnitude(r, self.mode.default_volume_format),
@@ -635,6 +641,18 @@ impl Calculator {
                 } else {
                     return Err(CalcError::TypeMismatch);
                 }
+            }
+
+            FunctionKey::Studs => {
+                let length = match current {
+                    Value::Length(l) => l,
+                    _ => return Err(CalcError::TypeMismatch),
+                };
+                let count = crate::operations::materials::studs_on_center(
+                    length,
+                    Length::from_inches_int(16),
+                )?;
+                self.display = Value::Scalar(Rational64::from_integer(count as i64));
             }
 
             // -- Compound miter family --

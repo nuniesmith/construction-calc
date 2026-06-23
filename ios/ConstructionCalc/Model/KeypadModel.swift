@@ -149,12 +149,14 @@ enum KeypadModel {
     /// weight units, Acre, the dms⇄deg angle toggle, and sign.
     static let calcBlock: [[KeypadButton]] = [
         [
-            digit(7), digit(8), digit(9),
+            digit(7, sub: "cm", secondary: .convert(format: .centimeters(precision: 1))),
+            digit(8, sub: "bd ft", secondary: .convertVolume(format: .boardFeet(precision: 2))),
+            digit(9, sub: "mm", secondary: .convert(format: .millimeters(precision: 0))),
             KeypadButton("÷", .op(op: .div), .op)
         ],
         [
             digit(4, sub: "lb", secondary: .weightUnit(unit: .pounds)),
-            digit(5),
+            digit(5, sub: "Studs", secondary: .function(function: .studs)),
             digit(6, sub: "tn", secondary: .weightUnit(unit: .tons)),
             KeypadButton("×", .op(op: .mul), .op)
         ],

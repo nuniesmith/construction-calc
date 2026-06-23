@@ -189,6 +189,31 @@ fn square_of_seven() {
 }
 
 #[test]
+fn studs_counts_a_wall_run() {
+    // 8 ft wall = 96", studs at 16" o.c. → ceil(96/16) + 1 = 7.
+    let mut c = typed(&[KeyEvent::Digit(8)]);
+    c.handle(KeyEvent::Unit(LengthUnitKey::Feet)).unwrap();
+    c.handle(KeyEvent::Function(FunctionKey::Studs)).unwrap();
+    assert_eq!(c.display, Value::Scalar(Rational64::from_integer(7)));
+}
+
+#[test]
+fn studs_partial_bay_adds_a_closing_stud() {
+    // 100" wall → ceil(100/16) + 1 = ceil(6.25) + 1 = 8.
+    let mut c = typed(&[KeyEvent::Digit(1), KeyEvent::Digit(0), KeyEvent::Digit(0)]);
+    c.handle(KeyEvent::Unit(LengthUnitKey::Inch)).unwrap();
+    c.handle(KeyEvent::Function(FunctionKey::Studs)).unwrap();
+    assert_eq!(c.display, Value::Scalar(Rational64::from_integer(8)));
+}
+
+#[test]
+fn studs_needs_a_length() {
+    // A bare scalar has no wall to count studs for.
+    let mut c = typed(&[KeyEvent::Digit(5)]);
+    assert!(c.handle(KeyEvent::Function(FunctionKey::Studs)).is_err());
+}
+
+#[test]
 fn single_slash_entry_is_a_fraction() {
     // Help text claims `3 / 8` produces 3/8. Previously the buffer dropped
     // the numerator and committed `3`. This guards against that regression.

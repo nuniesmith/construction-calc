@@ -120,6 +120,36 @@ fn formats_metric_meters() {
 }
 
 #[test]
+fn formats_centimeters_exactly() {
+    // 1 in = 2.54 cm exactly; 1 m = 100 cm.
+    let inch = Length::from_inches_int(1);
+    assert_eq!(
+        format_length(&inch, LengthFormat::Centimeters { precision: 2 }),
+        "2.54 cm"
+    );
+    let meter = Length::from_m(Rational64::from_integer(1));
+    assert_eq!(
+        format_length(&meter, LengthFormat::Centimeters { precision: 1 }),
+        "100 cm"
+    );
+}
+
+#[test]
+fn formats_millimeters_exactly() {
+    // 1 in = 25.4 mm exactly; 1 m = 1000 mm.
+    let inch = Length::from_inches_int(1);
+    assert_eq!(
+        format_length(&inch, LengthFormat::Millimeters { precision: 1 }),
+        "25.4 mm"
+    );
+    let meter = Length::from_m(Rational64::from_integer(1));
+    assert_eq!(
+        format_length(&meter, LengthFormat::Millimeters { precision: 0 }),
+        "1000 mm"
+    );
+}
+
+#[test]
 fn round_trip_through_feet_inch_fraction() {
     // Anything with a denom that's a power of two ≤ 16 should round-trip.
     let cases = ["8' 5-3/8\"", "12-1/16\"", "5'", "0\""];
