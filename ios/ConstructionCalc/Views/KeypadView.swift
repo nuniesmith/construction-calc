@@ -85,6 +85,10 @@ private struct KeyButton: View {
     /// pad so the digit keys read tall and chunky like a physical calculator).
     var stretch: Bool = false
 
+    /// Set the instant a long-press opens help, so the tap that lands when the
+    /// finger lifts is swallowed instead of also sending the key's event.
+    @State private var didLongPress = false
+
     var body: some View {
         if button.style == .filler {
             // Fixed height (not just a minimum): a bare Color is greedy and would
@@ -92,7 +96,10 @@ private struct KeyButton: View {
             // on pages whose function row has empty cells (Miter, Mem).
             Color.clear.frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
         } else {
-            Button(action: tap) {
+            Button {
+                // A long-press just fired (help opened) — drop the trailing tap.
+                if didLongPress { didLongPress = false } else { tap() }
+            } label: {
                 VStack(spacing: 1) {
                     if let sub = button.sub {
                         Text(sub)
@@ -111,10 +118,24 @@ private struct KeyButton: View {
                 )
             }
             .buttonStyle(.plain)
-            .onLongPressGesture(minimumDuration: 0.4) {
-                if let id = button.helpId { helpId = id }
-            }
+            // A *simultaneous* long-press runs alongside the button's own tap
+            // gesture instead of competing with it — so a still hold fires it
+            // right away (no need to drag), unlike `.onLongPressGesture`, which
+            // the button would otherwise swallow.
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.35, maximumDistance: 40)
+                    .onEnded { _ in longPress() }
+            )
         }
+    }
+
+    /// Long-press → firm haptic + the key's help entry. Keys without a help
+    /// entry (digits, operators) ignore it, so a long hold there still taps.
+    private func longPress() {
+        guard let id = button.helpId else { return }
+        didLongPress = true
+        Haptics.shared.longPress()
+        helpId = id
     }
 
     /// Routes the tap: the "2nd" key toggles shift; an armed shift fires a key's
