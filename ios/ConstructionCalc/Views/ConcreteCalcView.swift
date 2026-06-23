@@ -18,9 +18,19 @@ struct ConcreteCalcView: View {
         return l * w * d
     }
 
+    private var summary: String? {
+        guard let m3 = cubicMeters else { return nil }
+        let ft3 = m3 * 35.3146667
+        return "Concrete: "
+            + String(format: "%.3f m³ · %.2f yd³ · %.1f ft³", m3, m3 * 1.307950619, ft3)
+            + " · 60 lb bags ≈ \(Int((ft3 / 0.45).rounded(.up)))"
+            + " · 80 lb bags ≈ \(Int((ft3 / 0.60).rounded(.up)))"
+    }
+
     var body: some View {
         Form {
             Section("Dimensions") {
+                SeedRow(text: $length, unit: $lengthUnit)
                 DimField(label: "Length", text: $length, unit: $lengthUnit)
                 DimField(label: "Width", text: $width, unit: $widthUnit)
                 DimField(label: "Depth", text: $depth, unit: $depthUnit)
@@ -32,6 +42,7 @@ struct ConcreteCalcView: View {
                     ResultRow("Cubic feet", String(format: "%.1f ft³", m3 * 35.3146667))
                     ResultRow("60 lb bags", "≈ \(Int((m3 * 35.3146667 / 0.45).rounded(.up)))")
                     ResultRow("80 lb bags", "≈ \(Int((m3 * 35.3146667 / 0.60).rounded(.up)))")
+                    ShareResultsRow(summary: summary)
                 } else {
                     Text("Enter length, width, and depth.").foregroundStyle(.secondary)
                 }

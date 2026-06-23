@@ -750,6 +750,16 @@ impl Calculator {
     pub fn display_dimension(&self) -> Dimension {
         self.display.dimension()
     }
+
+    /// The current display value as decimal feet, when it is a length — used to
+    /// seed the guided estimators from the calculator. `None` for any other
+    /// dimension (or when there's nothing length-like on the display).
+    pub fn display_length_feet(&self) -> Option<f64> {
+        match self.display {
+            Value::Length(l) => Some(rational_to_f64(l.feet())),
+            _ => None,
+        }
+    }
 }
 
 fn apply_op(lhs: Value, op: BinaryOp, rhs: Value) -> Result<Value, CalcError> {

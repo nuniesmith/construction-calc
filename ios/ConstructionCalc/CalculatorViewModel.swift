@@ -43,6 +43,11 @@ final class CalculatorViewModel {
         errorMessage = snapshot.error
     }
 
+    /// The current display value as decimal feet when it's a length — used to
+    /// seed the guided estimators from the calculator. Nil for any other
+    /// dimension (or an empty/zero display).
+    var displayLengthFeet: Double? { calc.displayLengthFeet() }
+
     /// Pick a display format from the strip. Records the active index so the
     /// chip highlights, then sends the matching convert event.
     func pickFormat(_ index: Int) {

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Root screen. Composes the display, format strip, and keypad, and presents
 /// the tape / preferences / help as sheets. Mirrors the web `+page.svelte`
@@ -20,6 +21,14 @@ struct CalculatorView: View {
         VStack(spacing: 8) {
             header
             DisplayView(display: vm.display, error: vm.errorMessage)
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = vm.display
+                        Haptics.shared.tap()
+                    } label: {
+                        Label("Copy \(vm.display)", systemImage: "doc.on.doc")
+                    }
+                }
             FormatStripView()
             KeypadView(helpId: $helpId, estimatorRoute: $estimatorRoute)
         }

@@ -130,9 +130,17 @@ struct StairCalcView: View {
         return (risers, riserH, treads, treadD, runIn)
     }
 
+    private var summary: String? {
+        guard let r = result else { return nil }
+        return "Stairs: \(r.risers) risers @ \(String(format: "%.3f", r.riserH))\" · "
+            + "\(r.treads) treads @ \(String(format: "%.2f", r.treadD))\" · "
+            + "total run \(String(format: "%.1f", r.runIn))\" (\(String(format: "%.2f", r.runIn / 12)) ft)"
+    }
+
     var body: some View {
         Form {
             Section("Stair opening") {
+                SeedRow(text: $rise, unit: $riseUnit)
                 DimField(label: "Total rise", text: $rise, unit: $riseUnit)
                 DimField(label: "Total run", text: $run, unit: $runUnit)
             }
@@ -147,6 +155,7 @@ struct StairCalcView: View {
                         Label("Riser height is outside the typical 6–7¾″ — try one more riser.", systemImage: "exclamationmark.triangle")
                             .font(.footnote).foregroundStyle(.orange)
                     }
+                    ShareResultsRow(summary: summary)
                 } else {
                     Text("Enter the total rise (floor to floor). Total run is optional — leave it blank to size from a 10″ tread.")
                         .foregroundStyle(.secondary)
@@ -179,9 +188,21 @@ struct CircleCalcView: View {
         return c.area * h
     }
 
+    private var summary: String? {
+        guard let c = circle else { return nil }
+        var s = "Circle: r \(String(format: "%.3f m", c.radius)) · "
+            + "circ \(String(format: "%.3f m", c.circ)) · "
+            + "area \(String(format: "%.3f m² (%.1f ft²)", c.area, c.area * 10.7639104))"
+        if let v = volume {
+            s += " · volume \(String(format: "%.3f m³ (%.2f yd³)", v, v * 1.307950619))"
+        }
+        return s
+    }
+
     var body: some View {
         Form {
             Section("Circle") {
+                SeedRow(text: $diameter, unit: $diameterUnit)
                 DimField(label: "Diameter", text: $diameter, unit: $diameterUnit)
             }
             Section("Results") {
@@ -200,6 +221,7 @@ struct CircleCalcView: View {
                 } else {
                     Text("Add a depth for a round footing or column pour.").foregroundStyle(.secondary)
                 }
+                ShareResultsRow(summary: summary)
             }
         }
         .navigationTitle("Circle")
@@ -228,9 +250,17 @@ struct FramingCalcView: View {
         return Int(((lm / 0.3048) * (hm / 0.3048) / 32.0).rounded(.up)) // 4×8 = 32 ft², one side
     }
 
+    private var summary: String? {
+        guard let s = studs, let p = plateFeet else { return nil }
+        var out = "Framing: \(s) studs · \(String(format: "%.0f", p)) lin ft plate"
+        if let d = drywallSheets { out += " · drywall \(d) sheets/side (\(d * 2) both)" }
+        return out
+    }
+
     var body: some View {
         Form {
             Section("Wall") {
+                SeedRow(text: $length, unit: $lengthUnit)
                 DimField(label: "Length", text: $length, unit: $lengthUnit)
                 DimField(label: "Height", text: $height, unit: $heightUnit)
                 Picker("Stud spacing", selection: $spacing) {
@@ -254,6 +284,7 @@ struct FramingCalcView: View {
                 } else {
                     Text("Add a height for a drywall sheet count.").foregroundStyle(.secondary)
                 }
+                ShareResultsRow(summary: summary)
             }
         }
         .navigationTitle("Framing")
@@ -278,9 +309,16 @@ struct RebarCalcView: View {
         return (acrossWidth, acrossLength, acrossWidth + acrossLength, linFt)
     }
 
+    private var summary: String? {
+        guard let r = result else { return nil }
+        return "Rebar: \(r.total) bars (\(r.lengthwise) lengthwise + \(r.widthwise) widthwise) · "
+            + "\(String(format: "%.0f", r.linFt)) lin ft total"
+    }
+
     var body: some View {
         Form {
             Section("Slab") {
+                SeedRow(text: $length, unit: $lengthUnit)
                 DimField(label: "Length", text: $length, unit: $lengthUnit)
                 DimField(label: "Width", text: $width, unit: $widthUnit)
                 Picker("Grid spacing", selection: $spacing) {
@@ -296,6 +334,7 @@ struct RebarCalcView: View {
                     ResultRow("Bars (run widthwise)", "\(r.widthwise)")
                     ResultRow("Total bars", "\(r.total)")
                     ResultRow("Total length", String(format: "%.0f ft", r.linFt))
+                    ShareResultsRow(summary: summary)
                 } else {
                     Text("Enter the slab length and width.").foregroundStyle(.secondary)
                 }
@@ -325,9 +364,16 @@ struct RoofingCalcView: View {
         return (roofFt2, squares, Int((squares * 3.0).rounded(.up)))
     }
 
+    private var summary: String? {
+        guard let r = result else { return nil }
+        return "Roofing: \(String(format: "%.0f ft²", r.areaFt2)) · "
+            + "\(String(format: "%.1f", r.squares)) squares · \(r.bundles) bundles"
+    }
+
     var body: some View {
         Form {
             Section("Roof footprint (plan view)") {
+                SeedRow(text: $length, unit: $lengthUnit)
                 DimField(label: "Length", text: $length, unit: $lengthUnit)
                 DimField(label: "Width", text: $width, unit: $widthUnit)
                 Picker("Pitch", selection: $pitch) {
@@ -339,6 +385,7 @@ struct RoofingCalcView: View {
                     ResultRow("Roof area", String(format: "%.0f ft² (%.1f m²)", r.areaFt2, r.areaFt2 * 0.092903))
                     ResultRow("Squares", String(format: "%.1f", r.squares))
                     ResultRow("Shingle bundles", "\(r.bundles)")
+                    ShareResultsRow(summary: summary)
                 } else {
                     Text("Enter the building length and width (plan view).").foregroundStyle(.secondary)
                 }

@@ -280,6 +280,12 @@ impl Calculator {
         self.inner.lock().unwrap().display_string()
     }
 
+    /// The display value as decimal feet when it is a length, else `nil`. Lets
+    /// the estimator forms seed a starting dimension from the calculator.
+    pub fn display_length_feet(&self) -> Option<f64> {
+        self.inner.lock().unwrap().display_length_feet()
+    }
+
     pub fn export_markdown(&self) -> String {
         self.inner.lock().unwrap().tape.to_markdown()
     }

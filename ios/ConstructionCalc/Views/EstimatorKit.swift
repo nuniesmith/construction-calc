@@ -65,3 +65,52 @@ func meters(_ text: String, _ unit: LenUnit) -> Double? {
     guard let v = Double(text), v > 0 else { return nil }
     return v * unit.toMeters
 }
+
+/// Format a number to at most 3 decimals, trimming trailing zeros (and a
+/// dangling decimal point) so a seeded field reads cleanly: 8 → "8", not
+/// "8.000".
+func trimmedNumber(_ v: Double) -> String {
+    var s = String(format: "%.3f", v)
+    if s.contains(".") {
+        while s.hasSuffix("0") { s.removeLast() }
+        if s.hasSuffix(".") { s.removeLast() }
+    }
+    return s
+}
+
+/// A share/copy row for an estimator's results — shown only once there's a
+/// result. The iOS share sheet includes Copy, so this covers both.
+struct ShareResultsRow: View {
+    let summary: String?
+    var body: some View {
+        if let summary {
+            ShareLink(item: summary) {
+                Label("Share results", systemImage: "square.and.arrow.up")
+            }
+            .font(.footnote)
+        }
+    }
+}
+
+/// One-tap row that seeds a dimension field from the calculator's current
+/// display, shown only when the display holds a length. Bridges the keypad and
+/// the guided estimators so a measured value flows straight into a takeoff.
+struct SeedRow: View {
+    @Environment(CalculatorViewModel.self) private var vm
+    @Binding var text: String
+    @Binding var unit: LenUnit
+
+    var body: some View {
+        if let feet = vm.displayLengthFeet, feet > 0 {
+            let value = trimmedNumber(feet)
+            Button {
+                text = value
+                unit = .feet
+                Haptics.shared.tap()
+            } label: {
+                Label("Use calculator value — \(value) ft", systemImage: "arrow.down.to.line")
+            }
+            .font(.footnote)
+        }
+    }
+}
