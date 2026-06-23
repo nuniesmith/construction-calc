@@ -32,11 +32,14 @@ struct KeypadButton: Identifiable {
     /// A guided estimator this key opens instead of sending an event — used by
     /// the "Calc" page. Nil for ordinary keys.
     let estimator: EstimatorRoute?
+    /// When true, holding the key repeats its event (used by backspace). Such a
+    /// key holds-to-repeat instead of long-pressing for help.
+    let repeats: Bool
 
     init(_ label: String, _ event: KeyEvent?, _ style: KeyStyle,
          columns: Int = 1, help: String? = nil,
          sub: String? = nil, secondary: KeyEvent? = nil, shift: Bool = false,
-         estimator: EstimatorRoute? = nil) {
+         estimator: EstimatorRoute? = nil, repeats: Bool = false) {
         self.label = label
         self.event = event
         self.style = style
@@ -46,6 +49,7 @@ struct KeypadButton: Identifiable {
         self.secondary = secondary
         self.shift = shift
         self.estimator = estimator
+        self.repeats = repeats
     }
 
     /// A blank, non-interactive cell.
@@ -132,7 +136,7 @@ enum KeypadModel {
         [
             KeypadButton("C", .clear, .control, help: "c"),
             KeypadButton("AC", .clearAll, .control, help: "ac"),
-            KeypadButton("⌫", .backspace, .control, help: "bs"),
+            KeypadButton("⌫", .backspace, .control, help: "bs", repeats: true),
             KeypadButton("√", .function(function: .sqrt), .function, help: "sqrt",
                          sub: "1/x", secondary: .function(function: .reciprocal)),
             KeypadButton("x²", .function(function: .square), .function, help: "square",

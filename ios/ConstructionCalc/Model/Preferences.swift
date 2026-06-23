@@ -56,6 +56,7 @@ struct Preferences {
         static let format = "cc.pref.lengthFormat"
         static let degrees = "cc.pref.angleInDegrees"
         static let theme = "cc.pref.theme"
+        static let compactKeypad = "cc.pref.compactKeypad"
     }
 
     static func load(from defaults: UserDefaults = .standard) -> Preferences {

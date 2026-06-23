@@ -34,9 +34,10 @@ final class CalculatorViewModel {
     }
 
     /// Funnel for every key press. Sends the event, then republishes the
-    /// snapshot the engine returns.
-    func send(_ event: KeyEvent) {
-        haptics.tap()
+    /// snapshot the engine returns. `haptic` is false for hold-to-repeat ticks
+    /// (e.g. backspace) so a held key doesn't buzz on every repeat.
+    func send(_ event: KeyEvent, haptic: Bool = true) {
+        if haptic { haptics.tap() }
         let snapshot = calc.handle(event: event)
         display = snapshot.display
         tapeMarkdown = snapshot.tapeMarkdown

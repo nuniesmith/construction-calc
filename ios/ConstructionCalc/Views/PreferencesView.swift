@@ -12,6 +12,7 @@ struct PreferencesView: View {
     @AppStorage(Preferences.Key.format) private var format = LengthFormatPref.feetInchFraction.rawValue
     @AppStorage(Preferences.Key.degrees) private var angleInDegrees = true
     @AppStorage(Preferences.Key.theme) private var theme = ThemePref.midnight.rawValue
+    @AppStorage(Preferences.Key.compactKeypad) private var compactKeypad = false
 
     var body: some View {
         NavigationStack {
@@ -35,10 +36,11 @@ struct PreferencesView: View {
                             Text(t.label).tag(t.rawValue)
                         }
                     }
+                    Toggle("Compact keypad", isOn: $compactKeypad)
                 } header: {
                     Text("Appearance")
                 } footer: {
-                    Text("Daylight is a lighter, physical-calculator look; Midnight is the original dark theme.")
+                    Text("Daylight is a lighter, physical-calculator look; Midnight is the original dark theme. Compact tightens the keypad and keeps the digit keys uniform instead of tall.")
                 }
 
                 Section {
@@ -73,6 +75,7 @@ struct PreferencesView: View {
         format = Preferences.defaults.lengthFormat.rawValue
         angleInDegrees = Preferences.defaults.angleInDegrees
         theme = ThemePref.midnight.rawValue
+        compactKeypad = false
         vm.reapplyDisplayPreference()
         vm.setAngleMode(degrees: angleInDegrees)
     }
